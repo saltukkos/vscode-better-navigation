@@ -1,13 +1,14 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Modified by Konstantin Saltuk. All modifications licensed under the MIT License.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { EditorHighlights } from './highlights';
-import { Navigation } from './navigation';
-import { SymbolItemDragAndDrop, SymbolTreeInput } from './better-navigation';
-import { ContextKey, isValidRequestPosition, WordAnchor } from './utils';
+import { EditorHighlights } from '../highlights';
+import { Navigation } from '../navigation';
+import { SymbolItemDragAndDrop, SymbolTreeInput } from './model';
+import { ContextKey, isValidRequestPosition, WordAnchor } from '../utils';
 
 
 export class SymbolsTree {
