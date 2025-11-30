@@ -1,0 +1,394 @@
+{
+  "name": "better-navigation",
+  "displayName": "Better Navigation",
+  "description": "Better Navigation View (Extracted)",
+  "version": "1.0.0",
+  "publisher": "user",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:better-navigation.find",
+    "onCommand:editor.action.showReferences"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "properties": {
+        "better-navigation.preferredLocation": {
+          "description": "Controls where 'Find References' results are displayed.",
+          "type": "string",
+          "default": "peek",
+          "enum": [
+            "peek",
+            "view"
+          ],
+          "enumDescriptions": [
+            "Show references in a peek editor.",
+            "Show references in a separate view."
+          ]
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "better-navigation",
+          "icon": "media/icon.png",
+          "title": "Better Navigation"
+        }
+      ]
+    },
+    "views": {
+      "better-navigation": [
+        {
+          "id": "better-navigation.tree",
+          "name": "Better Navigation",
+          "when": "reference-list.isActive"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "better-navigation.findReferences",
+        "title": "Find References",
+        "category": "Better Navigation"
+      },
+      {
+        "command": "better-navigation.findImplementations",
+        "title": "Find Implementations",
+        "category": "Better Navigation"
+      },
+      {
+        "command": "better-navigation.clearHistory",
+        "title": "Clear History",
+        "category": "Better Navigation",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "better-navigation.clear",
+        "title": "Clear",
+        "category": "Better Navigation",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "better-navigation.refresh",
+        "title": "Refresh",
+        "category": "Better Navigation",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "better-navigation.pickFromHistory",
+        "title": "Pick From History",
+        "category": "Better Navigation"
+      },
+      {
+        "command": "better-navigation.removeReferenceItem",
+        "title": "Remove",
+        "icon": "$(close)"
+      },
+      {
+        "command": "better-navigation.copy",
+        "title": "Copy"
+      },
+      {
+        "command": "better-navigation.copyAll",
+        "title": "Copy All"
+      },
+      {
+        "command": "better-navigation.copyPath",
+        "title": "Copy Path"
+      },
+      {
+        "command": "better-navigation.refind",
+        "title": "Rerun",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "better-navigation.showCallHierarchy",
+        "title": "Show Call Hierarchy",
+        "category": "Calls"
+      },
+      {
+        "command": "better-navigation.showOutgoingCalls",
+        "title": "Show Outgoing Calls",
+        "category": "Calls",
+        "icon": "$(call-outgoing)"
+      },
+      {
+        "command": "better-navigation.showIncomingCalls",
+        "title": "Show Incoming Calls",
+        "category": "Calls",
+        "icon": "$(call-incoming)"
+      },
+      {
+        "command": "better-navigation.removeCallItem",
+        "title": "Remove",
+        "icon": "$(close)"
+      },
+      {
+        "command": "better-navigation.next",
+        "title": "Go to Next Reference",
+        "enablement": "better-navigation.canNavigate"
+      },
+      {
+        "command": "better-navigation.prev",
+        "title": "Go to Previous Reference",
+        "enablement": "better-navigation.canNavigate"
+      },
+      {
+        "command": "better-navigation.showTypeHierarchy",
+        "title": "Show Type Hierarchy",
+        "category": "Types"
+      },
+      {
+        "command": "better-navigation.showSupertypes",
+        "title": "Show Supertypes",
+        "category": "Types",
+        "icon": "$(type-hierarchy-super)"
+      },
+      {
+        "command": "better-navigation.showSubtypes",
+        "title": "Show Subtypes",
+        "category": "Types",
+        "icon": "$(type-hierarchy-sub)"
+      },
+      {
+        "command": "better-navigation.removeTypeItem",
+        "title": "Remove",
+        "icon": "$(close)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "better-navigation.findReferences",
+          "when": "editorHasReferenceProvider",
+          "group": "0_navigation@1"
+        },
+        {
+          "command": "better-navigation.findImplementations",
+          "when": "editorHasImplementationProvider",
+          "group": "0_navigation@2"
+        },
+        {
+          "command": "better-navigation.showCallHierarchy",
+          "when": "editorHasCallHierarchyProvider",
+          "group": "0_navigation@3"
+        },
+        {
+          "command": "better-navigation.showTypeHierarchy",
+          "when": "editorHasTypeHierarchyProvider",
+          "group": "0_navigation@4"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "better-navigation.clear",
+          "group": "navigation@3",
+          "when": "view == better-navigation.tree && reference-list.hasResult"
+        },
+        {
+          "command": "better-navigation.clearHistory",
+          "group": "navigation@3",
+          "when": "view == better-navigation.tree && reference-list.hasHistory && !reference-list.hasResult"
+        },
+        {
+          "command": "better-navigation.refresh",
+          "group": "navigation@2",
+          "when": "view == better-navigation.tree && reference-list.hasResult"
+        },
+        {
+          "command": "better-navigation.showOutgoingCalls",
+          "group": "navigation@1",
+          "when": "view == better-navigation.tree && reference-list.hasResult && reference-list.source == callHierarchy &&  better-navigation.callHierarchyMode == showIncoming"
+        },
+        {
+          "command": "better-navigation.showIncomingCalls",
+          "group": "navigation@1",
+          "when": "view == better-navigation.tree && reference-list.hasResult && reference-list.source == callHierarchy &&  better-navigation.callHierarchyMode == showOutgoing"
+        },
+        {
+          "command": "better-navigation.showSupertypes",
+          "group": "navigation@1",
+          "when": "view == better-navigation.tree && reference-list.hasResult && reference-list.source == typeHierarchy &&  better-navigation.typeHierarchyMode != supertypes"
+        },
+        {
+          "command": "better-navigation.showSubtypes",
+          "group": "navigation@1",
+          "when": "view == better-navigation.tree && reference-list.hasResult && reference-list.source == typeHierarchy &&  better-navigation.typeHierarchyMode != subtypes"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "better-navigation.removeReferenceItem",
+          "group": "inline",
+          "when": "view == better-navigation.tree && viewItem == file-item || view == better-navigation.tree && viewItem == reference-item"
+        },
+        {
+          "command": "better-navigation.removeCallItem",
+          "group": "inline",
+          "when": "view == better-navigation.tree && viewItem == call-item"
+        },
+        {
+          "command": "better-navigation.removeTypeItem",
+          "group": "inline",
+          "when": "view == better-navigation.tree && viewItem == type-item"
+        },
+        {
+          "command": "better-navigation.refind",
+          "group": "inline",
+          "when": "view == better-navigation.tree && viewItem == history-item"
+        },
+        {
+          "command": "better-navigation.removeReferenceItem",
+          "group": "1",
+          "when": "view == better-navigation.tree && viewItem == file-item || view == better-navigation.tree && viewItem == reference-item"
+        },
+        {
+          "command": "better-navigation.removeCallItem",
+          "group": "1",
+          "when": "view == better-navigation.tree && viewItem == call-item"
+        },
+        {
+          "command": "better-navigation.removeTypeItem",
+          "group": "1",
+          "when": "view == better-navigation.tree && viewItem == type-item"
+        },
+        {
+          "command": "better-navigation.refind",
+          "group": "1",
+          "when": "view == better-navigation.tree && viewItem == history-item"
+        },
+        {
+          "command": "better-navigation.copy",
+          "group": "2@1",
+          "when": "view == better-navigation.tree && viewItem == file-item || view == better-navigation.tree && viewItem == reference-item"
+        },
+        {
+          "command": "better-navigation.copyPath",
+          "group": "2@2",
+          "when": "view == better-navigation.tree && viewItem == file-item"
+        },
+        {
+          "command": "better-navigation.copyAll",
+          "group": "2@3",
+          "when": "view == better-navigation.tree && viewItem == file-item || view == better-navigation.tree && viewItem == reference-item"
+        },
+        {
+          "command": "better-navigation.showOutgoingCalls",
+          "group": "1",
+          "when": "view == better-navigation.tree && viewItem == call-item"
+        },
+        {
+          "command": "better-navigation.showIncomingCalls",
+          "group": "1",
+          "when": "view == better-navigation.tree && viewItem == call-item"
+        },
+        {
+          "command": "better-navigation.showSupertypes",
+          "group": "1",
+          "when": "view == better-navigation.tree && viewItem == type-item"
+        },
+        {
+          "command": "better-navigation.showSubtypes",
+          "group": "1",
+          "when": "view == better-navigation.tree && viewItem == type-item"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "better-navigation.removeReferenceItem",
+          "when": "never"
+        },
+        {
+          "command": "better-navigation.removeCallItem",
+          "when": "never"
+        },
+        {
+          "command": "better-navigation.removeTypeItem",
+          "when": "never"
+        },
+        {
+          "command": "better-navigation.copy",
+          "when": "never"
+        },
+        {
+          "command": "better-navigation.copyAll",
+          "when": "never"
+        },
+        {
+          "command": "better-navigation.copyPath",
+          "when": "never"
+        },
+        {
+          "command": "better-navigation.refind",
+          "when": "never"
+        },
+        {
+          "command": "better-navigation.findReferences",
+          "when": "editorHasReferenceProvider"
+        },
+        {
+          "command": "better-navigation.clear",
+          "when": "reference-list.hasResult"
+        },
+        {
+          "command": "better-navigation.clearHistory",
+          "when": "reference-list.isActive && !reference-list.hasResult"
+        },
+        {
+          "command": "better-navigation.refresh",
+          "when": "reference-list.hasResult"
+        },
+        {
+          "command": "better-navigation.pickFromHistory",
+          "when": "reference-list.isActive"
+        },
+        {
+          "command": "better-navigation.next",
+          "when": "never"
+        },
+        {
+          "command": "better-navigation.prev",
+          "when": "never"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "better-navigation.findReferences",
+        "when": "editorHasReferenceProvider",
+        "key": "shift+alt+f12"
+      },
+      {
+        "command": "better-navigation.next",
+        "when": "reference-list.hasResult",
+        "key": "f4"
+      },
+      {
+        "command": "better-navigation.prev",
+        "when": "reference-list.hasResult",
+        "key": "shift+f4"
+      },
+      {
+        "command": "better-navigation.showCallHierarchy",
+        "when": "editorHasCallHierarchyProvider",
+        "key": "shift+alt+h"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.0.0"
+  }
+}
