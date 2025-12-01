@@ -35,16 +35,22 @@
       }
     },
     "viewsContainers": {
-      "activitybar": [
+      "panel": [
         {
           "id": "better-navigation",
-          "icon": "media/icon.png",
-          "title": "Better Navigation"
+          "title": "Better Navigation",
+          "icon": "media/icon.png"
         }
       ]
     },
     "views": {
       "better-navigation": [
+        {
+          "id": "better-navigation.tabs",
+          "name": "Tabs",
+          "when": "reference-list.hasResult",
+          "type": "webview"
+        },
         {
           "id": "better-navigation.tree",
           "name": "Better Navigation",
@@ -52,6 +58,12 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "better-navigation.tree",
+        "contents": "No search results. Run a search to see results here."
+      }
+    ],
     "commands": [
       {
         "command": "better-navigation.findReferences",
@@ -161,6 +173,18 @@
         "command": "better-navigation.removeTypeItem",
         "title": "Remove",
         "icon": "$(close)"
+      },
+      {
+        "command": "better-navigation.switchToTab",
+        "title": "Switch Tab",
+        "icon": "$(list-selection)",
+        "category": "Better Navigation"
+      },
+      {
+        "command": "better-navigation.closeActiveTab",
+        "title": "Close Tab",
+        "icon": "$(close)",
+        "category": "Better Navigation"
       }
     ],
     "menus": {
@@ -187,6 +211,18 @@
         }
       ],
       "view/title": [
+        {
+          "command": "better-navigation.switchToTab",
+          "group": "navigation@1",
+          "when": "view == better-navigation.tree && better-navigation.hasMultipleTabs",
+          "icon": "$(list-selection)"
+        },
+        {
+          "command": "better-navigation.closeActiveTab",
+          "group": "navigation@1",
+          "when": "view == better-navigation.tree && reference-list.hasResult",
+          "icon": "$(close)"
+        },
         {
           "command": "better-navigation.clear",
           "group": "navigation@3",

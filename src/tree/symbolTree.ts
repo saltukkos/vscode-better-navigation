@@ -7,9 +7,19 @@
 import * as vscode from 'vscode';
 import { EditorHighlights } from '../highlights';
 import { Navigation } from '../navigation';
-import { SymbolItemDragAndDrop, SymbolTreeInput } from './model';
+import { SymbolItemDragAndDrop, SymbolTreeInput, SymbolTreeModel } from './model';
 import { ContextKey, isValidRequestPosition, WordAnchor } from '../utils';
+import { TabsViewProvider } from './tabs';
 
+
+interface SearchTab {
+	readonly id: string;
+	readonly input: SymbolTreeInput<unknown>;
+	readonly title: string;
+	model?: SymbolTreeModel<unknown>;
+	highlights?: EditorHighlights<unknown>;
+	sessionDisposable?: vscode.Disposable;
+}
 
 export class SymbolsTree {
 
@@ -18,6 +28,7 @@ export class SymbolsTree {
 	private readonly _ctxIsActive = new ContextKey<boolean>('reference-list.isActive');
 	private readonly _ctxHasResult = new ContextKey<boolean>('reference-list.hasResult');
 	private readonly _ctxInputSource = new ContextKey<string>('reference-list.source');
+	private readonly _ctxActiveTabId = new ContextKey<string>('reference-list.activeTabId');
 
 	private readonly _history = new TreeInputHistory(this);
 	private readonly _provider = new TreeDataProviderDelegate();
@@ -25,46 +36,80 @@ export class SymbolsTree {
 	private readonly _tree: vscode.TreeView<unknown>;
 	private readonly _navigation: Navigation;
 
-	private _input?: SymbolTreeInput<unknown>;
-	private _sessionDisposable?: vscode.Disposable;
+	private _tabs = new Map<string, SearchTab>();
+	private _activeTabId?: string;
+	private _tabCounter = 0;
+	private _tabsViewProvider?: TabsViewProvider;
 
-	constructor() {
+	constructor(context: vscode.ExtensionContext) {
 		this._tree = vscode.window.createTreeView<unknown>(this.viewId, {
 			treeDataProvider: this._provider,
 			showCollapseAll: true,
 			dragAndDropController: this._dnd
 		});
 		this._navigation = new Navigation(this._tree);
+		
+		// Register tabs view
+		const tabsProvider = new TabsViewProvider(context.extensionUri);
+		context.subscriptions.push(
+			vscode.window.registerWebviewViewProvider(TabsViewProvider.viewType, tabsProvider)
+		);
+		this._tabsViewProvider = tabsProvider;
+		
+		// Handle tab events
+		tabsProvider.onTabSwitch(tabId => this._switchToTab(tabId));
+		tabsProvider.onTabClose(tabId => this._closeTab(tabId));
+		
+		this._registerTabCommands();
 	}
 
 	dispose(): void {
 		this._history.dispose();
 		this._tree.dispose();
-		this._sessionDisposable?.dispose();
+		for (const tab of this._tabs.values()) {
+			tab.sessionDisposable?.dispose();
+			tab.highlights?.dispose();
+		}
+		this._tabs.clear();
 	}
 
 	getInput(): SymbolTreeInput<unknown> | undefined {
-		return this._input;
+		const tab = this._activeTabId ? this._tabs.get(this._activeTabId) : undefined;
+		return tab?.input;
+	}
+
+	getActiveTab(): SearchTab | undefined {
+		return this._activeTabId ? this._tabs.get(this._activeTabId) : undefined;
+	}
+
+	getTabs(): SearchTab[] {
+		return Array.from(this._tabs.values());
 	}
 
 	async setInput(input: SymbolTreeInput<unknown>) {
 
 		if (!await isValidRequestPosition(input.location.uri, input.location.range.start)) {
-			this.clearInput();
 			return;
 		}
 
+		// Create a new tab for this search
+		const tabId = `tab-${++this._tabCounter}`;
+		const tab: SearchTab = {
+			id: tabId,
+			input,
+			title: input.title
+		};
+
+		this._tabs.set(tabId, tab);
+		this._activeTabId = tabId;
+		this._ctxActiveTabId.set(tabId);
 		this._ctxInputSource.set(input.contextValue);
 		this._ctxIsActive.set(true);
 		this._ctxHasResult.set(true);
 		vscode.commands.executeCommand(`${this.viewId}.focus`);
 
-		const newInputKind = !this._input || Object.getPrototypeOf(this._input) !== Object.getPrototypeOf(input);
-		this._input = input;
-		this._sessionDisposable?.dispose();
-
 		this._tree.title = input.title;
-		this._tree.message = newInputKind ? undefined : this._tree.message;
+		this._tree.message = undefined;
 
 		const modelPromise = Promise.resolve(input.resolve());
 
@@ -73,19 +118,21 @@ export class SymbolsTree {
 		this._dnd.update(modelPromise.then(model => model?.dnd));
 
 		const model = await modelPromise;
-		if (this._input !== input) {
+		if (this._activeTabId !== tabId) {
+			// Tab was switched while loading
 			return;
 		}
 
 		if (!model) {
-			this.clearInput();
+			this._closeTab(tabId);
 			return;
 		}
 
+		tab.model = model;
 		this._history.add(input);
 		this._tree.message = model.message;
 
-		// navigation
+		// navigation - update the main navigation instance
 		this._navigation.update(model.navigation);
 
 		// reveal & select
@@ -101,32 +148,176 @@ export class SymbolsTree {
 		if (model.highlights) {
 			highlights = new EditorHighlights(this._tree, model.highlights);
 			disposables.push(highlights);
+			tab.highlights = highlights;
 		}
 
 		// listener
 		if (model.provider.onDidChangeTreeData) {
 			disposables.push(model.provider.onDidChangeTreeData(() => {
-				this._tree.title = input.title;
-				this._tree.message = model.message;
-				highlights?.update();
+				if (this._activeTabId === tabId) {
+					this._tree.title = input.title;
+					this._tree.message = model.message;
+					highlights?.update();
+				}
 			}));
 		}
 		if (typeof model.dispose === 'function') {
 			disposables.push(new vscode.Disposable(() => model.dispose!()));
 		}
-		this._sessionDisposable = vscode.Disposable.from(...disposables);
+		tab.sessionDisposable = vscode.Disposable.from(...disposables);
+
+		this._updateTabButtons();
 	}
 
 	clearInput(): void {
-		this._sessionDisposable?.dispose();
-		this._input = undefined;
-		this._ctxHasResult.set(false);
-		this._ctxInputSource.reset();
-		this._tree.title = vscode.l10n.t('References');
-		this._tree.message = this._history.size === 0
-			? vscode.l10n.t('No results.')
-			: vscode.l10n.t('No results. Try running a previous search again:');
-		this._provider.update(Promise.resolve(this._history));
+		// Clear the active tab
+		if (this._activeTabId) {
+			this._closeTab(this._activeTabId);
+		}
+	}
+
+	private _closeTab(tabId: string): void {
+		const tab = this._tabs.get(tabId);
+		if (!tab) {
+			return;
+		}
+
+		tab.sessionDisposable?.dispose();
+		tab.highlights?.dispose();
+		this._tabs.delete(tabId);
+
+		if (this._activeTabId === tabId) {
+			// Switch to another tab or clear
+			const remainingTabs = Array.from(this._tabs.keys());
+			if (remainingTabs.length > 0) {
+				this._switchToTab(remainingTabs[remainingTabs.length - 1]);
+			} else {
+				this._activeTabId = undefined;
+				this._ctxActiveTabId.reset();
+				this._ctxHasResult.set(false);
+				this._ctxInputSource.reset();
+				this._tree.title = vscode.l10n.t('References');
+				this._tree.message = this._history.size === 0
+					? vscode.l10n.t('No results.')
+					: vscode.l10n.t('No results. Try running a previous search again:');
+				this._provider.update(Promise.resolve(this._history));
+				this._navigation.update(undefined);
+			}
+		}
+		this._updateTabButtons();
+	}
+
+	private _switchToTab(tabId: string): void {
+		const tab = this._tabs.get(tabId);
+		if (!tab || !tab.model) {
+			return;
+		}
+
+		this._activeTabId = tabId;
+		this._ctxActiveTabId.set(tabId);
+		this._ctxInputSource.set(tab.input.contextValue);
+		this._ctxHasResult.set(true);
+
+		// Update title will be handled by _updateTabButtons
+		this._tree.message = tab.model.message;
+
+		// Update tree data provider
+		this._provider.update(Promise.resolve(tab.model.provider));
+		this._dnd.update(Promise.resolve(tab.model.dnd));
+
+		// Update navigation
+		this._navigation.update(tab.model.navigation);
+
+		// Reveal selection
+		const selection = tab.model.navigation?.nearest(tab.input.location.uri, tab.input.location.range.start);
+		if (selection && this._tree.visible) {
+			this._tree.reveal(selection, { select: true, focus: true, expand: true });
+		}
+
+		// Update highlights
+		tab.highlights?.update();
+
+		this._updateTabButtons();
+		vscode.commands.executeCommand(`${this.viewId}.focus`);
+	}
+
+	closeActiveTab(): void {
+		if (this._activeTabId) {
+			this._closeTab(this._activeTabId);
+		}
+	}
+
+	private _updateTabButtons(): void {
+		// Update view title to show active tab and count
+		const activeTab = this.getActiveTab();
+		if (activeTab && this._tabs.size > 1) {
+			this._tree.title = `${activeTab.title} (${this._tabs.size} tabs)`;
+		} else if (activeTab) {
+			this._tree.title = activeTab.title;
+		}
+		// Update context for view title buttons
+		vscode.commands.executeCommand('setContext', 'better-navigation.tabCount', this._tabs.size);
+		vscode.commands.executeCommand('setContext', 'better-navigation.hasMultipleTabs', this._tabs.size > 1);
+		
+		// Update tabs view
+		if (this._tabsViewProvider && this._tabs.size > 0) {
+			const tabs = Array.from(this._tabs.values()).map(tab => ({
+				id: tab.id,
+				title: tab.title,
+				active: tab.id === this._activeTabId
+			}));
+			this._tabsViewProvider.updateTabs(tabs);
+		}
+	}
+
+	private _registerTabCommands(): void {
+		vscode.commands.registerCommand('better-navigation.switchTab', (tabId: string) => {
+			this._switchToTab(tabId);
+		});
+
+		vscode.commands.registerCommand('better-navigation.closeTab', (tabId: string) => {
+			this._closeTab(tabId);
+		});
+
+		vscode.commands.registerCommand('better-navigation.closeAllTabs', () => {
+			const tabIds = Array.from(this._tabs.keys());
+			for (const tabId of tabIds) {
+				this._closeTab(tabId);
+			}
+		});
+
+		vscode.commands.registerCommand('better-navigation.switchToTab', async () => {
+			const tabs = Array.from(this._tabs.values());
+			if (tabs.length === 0) {
+				return;
+			}
+			interface TabPick extends vscode.QuickPickItem {
+				tab: SearchTab;
+			}
+			const picks = tabs.map((tab): TabPick => ({
+				label: tab.title,
+				description: vscode.workspace.asRelativePath(tab.input.location.uri),
+				picked: tab.id === this._activeTabId,
+				tab
+			}));
+			const pick = await vscode.window.showQuickPick(picks, { placeHolder: vscode.l10n.t('Select tab') });
+			if (pick) {
+				this._switchToTab(pick.tab.id);
+			}
+		});
+
+		// Override refresh to refresh active tab
+		vscode.commands.registerCommand('better-navigation.refresh', () => {
+			const activeTab = this.getActiveTab();
+			if (activeTab) {
+				// Re-run the search for the active tab
+				this.setInput(activeTab.input);
+			}
+		});
+
+		vscode.commands.registerCommand('better-navigation.closeActiveTab', () => {
+			this.closeActiveTab();
+		});
 	}
 }
 
@@ -260,12 +451,12 @@ class TreeInputHistory implements vscode.TreeDataProvider<HistoryItem> {
 					this._reRunHistoryItem(item);
 				}
 			}),
-			vscode.commands.registerCommand('better-navigation.refresh', () => {
-				const item = Array.from(this._inputs.values()).pop();
-				if (item) {
-					this._reRunHistoryItem(item);
-				}
-			}),
+			// vscode.commands.registerCommand('better-navigation.refresh', () => {
+			// 	const item = Array.from(this._inputs.values()).pop();
+			// 	if (item) {
+			// 		this._reRunHistoryItem(item);
+			// 	}
+			// }),
 			vscode.commands.registerCommand('_better-navigation.showHistoryItem', async (item) => {
 				if (item instanceof HistoryItem) {
 					const position = item.anchor.guessedTrackedPosition() ?? item.input.location.range.start;

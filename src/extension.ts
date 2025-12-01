@@ -12,7 +12,7 @@ import * as types from './types';
 
 export function activate(context: vscode.ExtensionContext): void {
 
-	const tree = new SymbolsTree();
+	const tree = new SymbolsTree(context);
 
 	references.register(tree, context);
 	calls.register(tree, context);
