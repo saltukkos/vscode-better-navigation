@@ -62,12 +62,14 @@
           "id": "better-navigation.tabs",
           "name": "Tabs",
           "when": "reference-list.hasResult && better-navigation.showVisualTabs",
-          "type": "webview"
+          "type": "webview",
+          "initialSize": 1
         },
         {
           "id": "better-navigation.tree",
           "name": "Better Navigation",
-          "when": "reference-list.isActive"
+          "when": "reference-list.isActive",
+          "initialSize": 100
         }
       ]
     },
