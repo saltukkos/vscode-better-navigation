@@ -60,6 +60,15 @@ export class SymbolsTree {
 		tabsProvider.onTabSwitch(tabId => this._switchToTab(tabId));
 		tabsProvider.onTabClose(tabId => this._closeTab(tabId));
 		
+		// Listen for configuration changes
+		context.subscriptions.push(
+			vscode.workspace.onDidChangeConfiguration(e => {
+				if (e.affectsConfiguration('better-navigation.tabViewType')) {
+					this._updateTabButtons();
+				}
+			})
+		);
+		
 		this._registerTabCommands();
 	}
 
@@ -259,8 +268,15 @@ export class SymbolsTree {
 		vscode.commands.executeCommand('setContext', 'better-navigation.tabCount', this._tabs.size);
 		vscode.commands.executeCommand('setContext', 'better-navigation.hasMultipleTabs', this._tabs.size > 1);
 		
-		// Update tabs view
-		if (this._tabsViewProvider && this._tabs.size > 0) {
+		// Update tabs view based on setting
+		const config = vscode.workspace.getConfiguration('better-navigation');
+		const tabViewType = config.get<string>('tabViewType', 'visual');
+		const showVisualTabs = tabViewType === 'visual';
+		
+		vscode.commands.executeCommand('setContext', 'better-navigation.showVisualTabs', showVisualTabs);
+		
+		// Update tabs view if visual tabs are enabled
+		if (this._tabsViewProvider && this._tabs.size > 0 && showVisualTabs) {
 			const tabs = Array.from(this._tabs.values()).map(tab => ({
 				id: tab.id,
 				title: tab.title,
@@ -297,10 +313,14 @@ export class SymbolsTree {
 			const picks = tabs.map((tab): TabPick => ({
 				label: tab.title,
 				description: vscode.workspace.asRelativePath(tab.input.location.uri),
+				detail: tab.model ? tab.model.message : undefined,
 				picked: tab.id === this._activeTabId,
 				tab
 			}));
-			const pick = await vscode.window.showQuickPick(picks, { placeHolder: vscode.l10n.t('Select tab') });
+			const pick = await vscode.window.showQuickPick(picks, { 
+				placeHolder: vscode.l10n.t('Select tab to switch to'),
+				canPickMany: false
+			});
 			if (pick) {
 				this._switchToTab(pick.tab.id);
 			}
@@ -317,6 +337,11 @@ export class SymbolsTree {
 
 		vscode.commands.registerCommand('better-navigation.closeActiveTab', () => {
 			this.closeActiveTab();
+		});
+
+		vscode.commands.registerCommand('better-navigation.showTabsQuickPick', () => {
+			// This is the same as switchToTab, but with a different name for the context menu
+			vscode.commands.executeCommand('better-navigation.switchToTab');
 		});
 	}
 }

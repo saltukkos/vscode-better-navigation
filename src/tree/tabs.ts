@@ -58,7 +58,9 @@ export class TabsViewProvider implements vscode.WebviewViewProvider {
 			const closeButton = `<button class="close-btn" data-tab-id="${tab.id}" title="Close tab">×</button>`;
 			return `
 				<div class="tab ${activeClass}" data-tab-id="${tab.id}">
-					<span class="tab-title">${this._escapeHtml(tab.title)}</span>
+					<div class="tab-content">
+						<span class="tab-title">${this._escapeHtml(tab.title)}</span>
+					</div>
 					${closeButton}
 				</div>
 			`;
@@ -80,28 +82,43 @@ export class TabsViewProvider implements vscode.WebviewViewProvider {
 					}
 					.tabs-container {
 						display: flex;
-						overflow-x: auto;
-						border-bottom: 1px solid var(--vscode-panel-border);
+						flex-direction: column;
+						overflow-y: auto;
 						background-color: var(--vscode-editor-background);
+						width: 100%;
+						box-sizing: border-box;
 					}
 					.tab {
 						display: flex;
 						align-items: center;
-						padding: 6px 12px;
+						justify-content: space-between;
+						padding: 8px 12px;
 						cursor: pointer;
-						border-right: 1px solid var(--vscode-panel-border);
+						border-bottom: 1px solid var(--vscode-panel-border);
 						background-color: var(--vscode-sideBar-background);
-						white-space: nowrap;
 						user-select: none;
+						min-width: 0;
+						width: 100%;
+						box-sizing: border-box;
 					}
 					.tab:hover {
 						background-color: var(--vscode-list-hoverBackground);
 					}
 					.tab.active {
 						background-color: var(--vscode-editor-background);
-						border-bottom: 2px solid var(--vscode-textLink-foreground);
+						border-left: 3px solid var(--vscode-textLink-foreground);
+					}
+					.tab-content {
+						display: flex;
+						align-items: center;
+						flex: 1;
+						min-width: 0;
 					}
 					.tab-title {
+						flex: 1;
+						overflow: hidden;
+						text-overflow: ellipsis;
+						white-space: nowrap;
 						margin-right: 8px;
 					}
 					.close-btn {
@@ -113,6 +130,7 @@ export class TabsViewProvider implements vscode.WebviewViewProvider {
 						line-height: 1;
 						padding: 0 4px;
 						opacity: 0.7;
+						flex-shrink: 0;
 					}
 					.close-btn:hover {
 						opacity: 1;

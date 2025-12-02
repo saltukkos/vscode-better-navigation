@@ -31,6 +31,19 @@
             "Show references in a peek editor.",
             "Show references in a separate view."
           ]
+        },
+        "better-navigation.tabViewType": {
+          "description": "Controls how multiple search tabs are displayed.",
+          "type": "string",
+          "default": "visual",
+          "enum": [
+            "visual",
+            "quickpick"
+          ],
+          "enumDescriptions": [
+            "Show tabs as a visual tab bar.",
+            "Show tabs in a quickpick menu accessed from the view title."
+          ]
         }
       }
     },
@@ -48,7 +61,7 @@
         {
           "id": "better-navigation.tabs",
           "name": "Tabs",
-          "when": "reference-list.hasResult",
+          "when": "reference-list.hasResult && better-navigation.showVisualTabs",
           "type": "webview"
         },
         {
@@ -185,6 +198,12 @@
         "title": "Close Tab",
         "icon": "$(close)",
         "category": "Better Navigation"
+      },
+      {
+        "command": "better-navigation.showTabsQuickPick",
+        "title": "Show Tabs",
+        "icon": "$(list-selection)",
+        "category": "Better Navigation"
       }
     ],
     "menus": {
@@ -212,9 +231,9 @@
       ],
       "view/title": [
         {
-          "command": "better-navigation.switchToTab",
+          "command": "better-navigation.showTabsQuickPick",
           "group": "navigation@1",
-          "when": "view == better-navigation.tree && better-navigation.hasMultipleTabs",
+          "when": "view == better-navigation.tree && better-navigation.hasMultipleTabs && !better-navigation.showVisualTabs",
           "icon": "$(list-selection)"
         },
         {
