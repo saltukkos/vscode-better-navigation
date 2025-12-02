@@ -17,6 +17,7 @@ interface SearchTab {
 	readonly input: SymbolTreeInput<unknown>;
 	readonly title: string;
 	model?: SymbolTreeModel<unknown>;
+	modelPromise?: Promise<SymbolTreeModel<unknown> | undefined>;
 	highlights?: EditorHighlights<unknown>;
 	sessionDisposable?: vscode.Disposable;
 }
@@ -96,7 +97,6 @@ export class SymbolsTree {
 	}
 
 	async setInput(input: SymbolTreeInput<unknown>) {
-
 		const word = await tryGetSearchTerm(input.location.uri, input.location.range.start);
 		if (!word) {
 			return;
@@ -113,50 +113,76 @@ export class SymbolsTree {
 			title: formattedTitle
 		};
 
+		// Add tab immediately - it should appear right away
 		this._tabs.set(tabId, tab);
 		this._activeTabId = tabId;
 		this._ctxActiveTabId.set(tabId);
 		this._ctxInputSource.set(input.contextValue);
 		this._ctxIsActive.set(true);
 		this._ctxHasResult.set(true);
+		
+		// Update tabs view immediately so the new tab appears
+		this._updateTabButtons();
+		
+		// Focus the tree view
 		vscode.commands.executeCommand(`${this.viewId}.focus`);
 
+		// Set initial UI state
 		this._tree.title = formattedTitle;
 		this._tree.message = undefined;
 
-		const modelPromise = Promise.resolve(input.resolve());
+		// Start loading the model in the background (don't await here)
+		this._loadModelForTab(tabId);
+	}
 
-		// set promise to tree data provider to trigger tree loading UI
-		this._provider.update(modelPromise.then(model => model?.provider ?? this._history));
-		this._dnd.update(modelPromise.then(model => model?.dnd));
+	private async _loadModelForTab(tabId: string): Promise<void> {
+		const tab = this._tabs.get(tabId);
+		if (!tab) {
+			return;
+		}
 
+		// Start resolving the model - store the promise so we can track loading state
+		const modelPromise = Promise.resolve(tab.input.resolve()).then(model => model ?? undefined);
+		tab.modelPromise = modelPromise;
+
+		// Update tree data provider if this is the active tab (to show loading state)
+		const isActive = this._activeTabId === tabId;
+		if (isActive) {
+			this._provider.update(modelPromise.then(model => model?.provider ?? this._history));
+			this._dnd.update(modelPromise.then(model => model?.dnd));
+		}
+
+		// Wait for model to resolve (this continues even if we switch tabs)
 		const model = await modelPromise;
-		if (this._activeTabId !== tabId) {
-			// Tab was switched while loading
+		
+		// Check if tab still exists (might have been closed)
+		if (!this._tabs.has(tabId)) {
+			// Tab was closed, dispose model if it exists
+			if (model && typeof model.dispose === 'function') {
+				model.dispose();
+			}
 			return;
 		}
-
+		
 		if (!model) {
-			this._closeTab(tabId);
+			// Model resolution failed
+			tab.modelPromise = undefined;
+			// Only close if this is the active tab
+			if (this._activeTabId === tabId) {
+				this._closeTab(tabId);
+			}
 			return;
 		}
 
+		// Store the model
 		tab.model = model;
-		this._history.add(input);
-		this._tree.message = model.message;
+		tab.modelPromise = undefined;
+		this._history.add(tab.input);
 
-		// navigation - update the main navigation instance
-		this._navigation.update(model.navigation);
-
-		// reveal & select
-		const selection = model.navigation?.nearest(input.location.uri, input.location.range.start);
-		if (selection && this._tree.visible) {
-			await this._tree.reveal(selection, { select: true, focus: true, expand: true });
-		}
-
+		// Set up highlights and listeners
 		const disposables: vscode.Disposable[] = [];
 
-		// editor highlights
+		// editor highlights - always set up, even if tab is not active
 		let highlights: EditorHighlights<unknown> | undefined;
 		if (model.highlights) {
 			highlights = new EditorHighlights(this._tree, model.highlights);
@@ -164,7 +190,7 @@ export class SymbolsTree {
 			tab.highlights = highlights;
 		}
 
-		// listener
+		// listener - always set up, even if tab is not active
 		if (model.provider.onDidChangeTreeData) {
 			disposables.push(model.provider.onDidChangeTreeData(() => {
 				if (this._activeTabId === tabId) {
@@ -179,6 +205,37 @@ export class SymbolsTree {
 		}
 		tab.sessionDisposable = vscode.Disposable.from(...disposables);
 
+		// Update UI if this is the active tab
+		if (this._activeTabId === tabId) {
+			await this._showTabContent(tabId);
+		}
+	}
+
+	private async _showTabContent(tabId: string): Promise<void> {
+		const tab = this._tabs.get(tabId);
+		if (!tab || !tab.model) {
+			return;
+		}
+
+		this._tree.message = tab.model.message;
+
+		// navigation - update the main navigation instance
+		this._navigation.update(tab.model.navigation);
+
+		// Update tree data provider
+		this._provider.update(Promise.resolve(tab.model.provider));
+		this._dnd.update(Promise.resolve(tab.model.dnd));
+
+		// reveal & select
+		const selection = tab.model.navigation?.nearest(tab.input.location.uri, tab.input.location.range.start);
+		if (selection && this._tree.visible) {
+			await this._tree.reveal(selection, { select: true, focus: true, expand: true });
+		}
+
+		// Update highlights
+		tab.highlights?.update();
+
+		// Update tabs view
 		this._updateTabButtons();
 	}
 
@@ -220,37 +277,54 @@ export class SymbolsTree {
 		this._updateTabButtons();
 	}
 
-	private _switchToTab(tabId: string): void {
+	private async _switchToTab(tabId: string): Promise<void> {
 		const tab = this._tabs.get(tabId);
-		if (!tab || !tab.model) {
+		if (!tab) {
 			return;
 		}
 
 		this._activeTabId = tabId;
 		this._ctxActiveTabId.set(tabId);
 		this._ctxInputSource.set(tab.input.contextValue);
+		this._ctxIsActive.set(true);
 		this._ctxHasResult.set(true);
 
-		// Update title will be handled by _updateTabButtons
-		this._tree.message = tab.model.message;
+		// Update title immediately
+		this._tree.title = tab.title;
 
-		// Update tree data provider
-		this._provider.update(Promise.resolve(tab.model.provider));
-		this._dnd.update(Promise.resolve(tab.model.dnd));
-
-		// Update navigation
-		this._navigation.update(tab.model.navigation);
-
-		// Reveal selection
-		const selection = tab.model.navigation?.nearest(tab.input.location.uri, tab.input.location.range.start);
-		if (selection && this._tree.visible) {
-			this._tree.reveal(selection, { select: true, focus: true, expand: true });
+		// If model is still loading, show loading state and wait for it
+		if (tab.modelPromise && !tab.model) {
+			this._tree.message = undefined;
+			// Show loading state
+			this._provider.update(tab.modelPromise.then(model => model?.provider ?? this._history));
+			this._dnd.update(tab.modelPromise.then(model => model?.dnd));
+			
+			// Wait for the model to finish loading
+			await tab.modelPromise;
+			
+			// Check if we're still on this tab and tab still exists
+			if (this._activeTabId !== tabId || !this._tabs.has(tabId)) {
+				return;
+			}
+			
+			// If model failed to load, close the tab
+			if (!tab.model) {
+				this._closeTab(tabId);
+				return;
+			}
 		}
 
-		// Update highlights
-		tab.highlights?.update();
+		// Show the tab content (model exists or was just loaded)
+		if (tab.model) {
+			await this._showTabContent(tabId);
+		} else {
+			// No model and no promise - this shouldn't happen, but handle gracefully
+			this._tree.message = vscode.l10n.t('No results.');
+			this._provider.update(Promise.resolve(this._history));
+			this._navigation.update(undefined);
+			this._updateTabButtons();
+		}
 
-		this._updateTabButtons();
 		vscode.commands.executeCommand(`${this.viewId}.focus`);
 	}
 
@@ -258,6 +332,34 @@ export class SymbolsTree {
 		if (this._activeTabId) {
 			this._closeTab(this._activeTabId);
 		}
+	}
+
+	private async _refreshTab(tabId: string): Promise<void> {
+		const tab = this._tabs.get(tabId);
+		if (!tab) {
+			return;
+		}
+
+		// Dispose old model and highlights
+		tab.sessionDisposable?.dispose();
+		tab.highlights?.dispose();
+		if (tab.model && typeof tab.model.dispose === 'function') {
+			tab.model.dispose();
+		}
+		tab.model = undefined;
+		tab.modelPromise = undefined;
+		tab.highlights = undefined;
+		tab.sessionDisposable = undefined;
+
+		// Update UI if this is the active tab
+		const isActive = this._activeTabId === tabId;
+		if (isActive) {
+			this._tree.title = tab.title;
+			this._tree.message = undefined;
+		}
+
+		// Reload the model in the background
+		this._loadModelForTab(tabId);
 	}
 
 	private _updateTabButtons(): void {
@@ -331,11 +433,10 @@ export class SymbolsTree {
 		});
 
 		// Override refresh to refresh active tab
-		vscode.commands.registerCommand('better-navigation.refresh', () => {
+		vscode.commands.registerCommand('better-navigation.refresh', async () => {
 			const activeTab = this.getActiveTab();
 			if (activeTab) {
-				// Re-run the search for the active tab
-				this.setInput(activeTab.input);
+				await this._refreshTab(activeTab.id);
 			}
 		});
 
