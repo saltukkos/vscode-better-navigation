@@ -21,13 +21,13 @@ export function asResourceUrl(uri: vscode.Uri, range: vscode.Range): vscode.Uri 
 	return uri.with({ fragment: `L${1 + range.start.line},${1 + range.start.character}-${1 + range.end.line},${1 + range.end.character}` });
 }
 
-export async function isValidRequestPosition(uri: vscode.Uri, position: vscode.Position) {
+export async function tryGetSearchTerm(uri: vscode.Uri, position: vscode.Position): Promise<string | undefined> {
 	const doc = await vscode.workspace.openTextDocument(uri);
 	let range = doc.getWordRangeAtPosition(position);
 	if (!range) {
 		range = doc.getWordRangeAtPosition(position, /[^\s]+/);
 	}
-	return Boolean(range);
+	return range ? doc.getText(range) : undefined;
 }
 
 export function getPreviewChunks(doc: vscode.TextDocument, range: vscode.Range, beforeLen: number = 8, trim: boolean = true) {

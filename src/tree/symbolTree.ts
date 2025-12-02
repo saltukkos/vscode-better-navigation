@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import { EditorHighlights } from '../highlights';
 import { Navigation } from '../navigation';
 import { SymbolItemDragAndDrop, SymbolTreeInput, SymbolTreeModel } from './model';
-import { ContextKey, isValidRequestPosition, WordAnchor } from '../utils';
+import { ContextKey, tryGetSearchTerm, WordAnchor } from '../utils';
 import { TabsViewProvider } from './tabs';
 
 
@@ -97,16 +97,20 @@ export class SymbolsTree {
 
 	async setInput(input: SymbolTreeInput<unknown>) {
 
-		if (!await isValidRequestPosition(input.location.uri, input.location.range.start)) {
+		const word = await tryGetSearchTerm(input.location.uri, input.location.range.start);
+		if (!word) {
 			return;
 		}
+		
+		// Format title as 'word' title (lowercased)
+		const formattedTitle = `'${word}' ${input.title.toLocaleLowerCase()}`;
 
 		// Create a new tab for this search
 		const tabId = `tab-${++this._tabCounter}`;
 		const tab: SearchTab = {
 			id: tabId,
 			input,
-			title: input.title
+			title: formattedTitle
 		};
 
 		this._tabs.set(tabId, tab);
@@ -117,7 +121,7 @@ export class SymbolsTree {
 		this._ctxHasResult.set(true);
 		vscode.commands.executeCommand(`${this.viewId}.focus`);
 
-		this._tree.title = input.title;
+		this._tree.title = formattedTitle;
 		this._tree.message = undefined;
 
 		const modelPromise = Promise.resolve(input.resolve());
@@ -164,7 +168,7 @@ export class SymbolsTree {
 		if (model.provider.onDidChangeTreeData) {
 			disposables.push(model.provider.onDidChangeTreeData(() => {
 				if (this._activeTabId === tabId) {
-					this._tree.title = input.title;
+					this._tree.title = tab.title;
 					this._tree.message = model.message;
 					highlights?.update();
 				}
