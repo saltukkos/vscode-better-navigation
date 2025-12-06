@@ -1,20 +1,34 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Modified by Konstantin Saltuk. All modifications licensed under the MIT License.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-
 import * as vscode from 'vscode';
-import * as calls from './calls';
-import * as references from './references';
-import { SymbolsTree } from './tree';
-import * as types from './types';
+import { SearchController } from './search/searchManager';
+import { SearchView } from './search/searchView';
+import { TabView } from './search/tabView';
+import { ReferencesSearchModel } from './searchProviders/referencesModel';
+import { TypeHierarchySearchModel, TypeHierarchyDirection } from './searchProviders/typesModel';
 
 export function activate(context: vscode.ExtensionContext): void {
+    const controller = new SearchController();
+    context.subscriptions.push(controller);
 
-	const tree = new SymbolsTree(context);
+    const searchView = new SearchView(controller);
+    context.subscriptions.push(vscode.window.registerTreeDataProvider('better-navigation.tree', searchView));
+    context.subscriptions.push(searchView);
 
-	references.register(tree, context);
-	calls.register(tree, context);
-	types.register(tree, context);
+    const tabView = new TabView(context.extensionUri, controller);
+    context.subscriptions.push();
+
+    const referencesModel = new ReferencesSearchModel();
+    const supertypesModel = new TypeHierarchySearchModel(TypeHierarchyDirection.Supertypes);
+    const subtypesModel = new TypeHierarchySearchModel(TypeHierarchyDirection.Subtypes);
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('better-navigation.findReferences', async () => {
+            await controller.runSearch(referencesModel);
+        }),
+        vscode.commands.registerCommand('better-navigation.showSupertypes', async () => {
+            await controller.runSearch(supertypesModel);
+        }),
+        vscode.commands.registerCommand('better-navigation.showSubtypes', async () => {
+            await controller.runSearch(subtypesModel);
+        })
+    );
 }

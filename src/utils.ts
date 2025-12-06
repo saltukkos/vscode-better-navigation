@@ -6,15 +6,24 @@
 
 import * as vscode from 'vscode';
 
-export function del<T>(array: T[], e: T): void {
-	const idx = array.indexOf(e);
-	if (idx >= 0) {
-		array.splice(idx, 1);
+export function getOrCreate<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
+	let value = map.get(key);
+	if (value === undefined) {
+		value = factory();
+		map.set(key, value);
 	}
+	return value;
 }
 
-export function tail<T>(array: T[]): T | undefined {
-	return array[array.length - 1];
+export function compareUris(a: vscode.Uri, b: vscode.Uri): number {
+    const aUri = a.toString();
+    const bUri = b.toString();
+    if (aUri < bUri) {
+        return -1;
+    } else if (aUri > bUri) {
+        return 1;
+    }
+    return 0;
 }
 
 export function asResourceUrl(uri: vscode.Uri, range: vscode.Range): vscode.Uri {
@@ -72,6 +81,7 @@ export class WordAnchor {
 		return range && doc.getText(range);
 	}
 
+	// TODO: would be better to subscribe to changes and update the position
 	guessedTrackedPosition(): vscode.Position | undefined {
 		// funky entry
 		if (!this._word) {
