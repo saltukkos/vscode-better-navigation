@@ -4,7 +4,6 @@ import { TreeNode } from './searchManager';
 
 export class FileTreeNode implements TreeNode {
     public readonly hasChildren = true;
-    public readonly label: string;
     public readonly icon = vscode.ThemeIcon.File;
 
     private _childrenPromise: Promise<TreeNode[]> | undefined;
@@ -12,10 +11,10 @@ export class FileTreeNode implements TreeNode {
     constructor(
         readonly uri: vscode.Uri,
         private readonly ranges: vscode.Range[],
-        private readonly itemsIcon: vscode.ThemeIcon | undefined
+        private readonly itemsIcon: vscode.ThemeIcon | undefined,
+        public readonly label: string
     ) {
         ranges.sort((a, b) => a.start.compareTo(b.start));
-        this.label = vscode.workspace.asRelativePath(uri);
     }
 
     async getChildren(): Promise<TreeNode[]> {

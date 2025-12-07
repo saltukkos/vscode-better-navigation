@@ -14,7 +14,7 @@
     - [ ] Go back to the existing result if search is on the same location and no changes happened
 - [ ] Implement editor highlightings
 - [ ] Add an option to show a quickpick instead of tabs (with an option to switch to the tree view)
-- [ ] Add an optional grouping by the directory
+- [x] Add an optional grouping by the directory
 - [ ] Add an optional grouping by the member
 - [ ] Add an optional grouping by write\read usages (custom API required)
 

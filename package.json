@@ -44,6 +44,11 @@
             "Show tabs as a visual tab bar.",
             "Show tabs in a quickpick menu accessed from the view title."
           ]
+        },
+        "better-navigation.groupByDirectory": {
+          "description": "Controls whether to group search results by directory structure.",
+          "type": "boolean",
+          "default": true
         }
       }
     },

@@ -15,6 +15,12 @@ export function getOrCreate<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
 	return value;
 }
 
+export function getFileName(uri: vscode.Uri): string {
+    const path = uri.path;
+    const segments = path.split('/');
+    return segments[segments.length - 1];
+}
+
 export function compareUris(a: vscode.Uri, b: vscode.Uri): number {
     const aUri = a.toString();
     const bUri = b.toString();
