@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
-import { SearchController, TreeNode } from './searchManager';
+import { SearchController, SearchInstance, TreeNode } from './searchManager';
 
 class LoadingTreeNode implements TreeNode {
+    public static readonly instance = new LoadingTreeNode();
+
     public readonly hasChildren = false;
     public readonly label = 'Loading results...';
     public readonly icon = new vscode.ThemeIcon('loading~spin');
@@ -11,14 +13,21 @@ class LoadingTreeNode implements TreeNode {
     }
 }
 
+enum LoadingNodeDisplayState {
+    PendingDisplayLoadingNode,
+    PendingDisplayEmptyTree,
+    LoadingNodeDisplayIsNotNeeded
+}
+
 export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Disposable {
     private static readonly treeViewId = 'better-navigation.tree';
 
     private readonly _disposable: vscode.Disposable;
-    private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined | void>();
-    public readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
     private readonly _treeView: vscode.TreeView<TreeNode>;
-    private _currentLoadingTreeNode: LoadingTreeNode | undefined;
+    private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined | void>();
+
+    private _currentLoadingNodeDisplayState: LoadingNodeDisplayState = LoadingNodeDisplayState.LoadingNodeDisplayIsNotNeeded;
+    private _currentDisplayingSearch: SearchInstance | undefined;
 
     constructor(private readonly _manager: SearchController) {
         this._disposable = vscode.Disposable.from(
@@ -28,12 +37,24 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         );
     }
 
+    public readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+
     private async onActiveSearchChanged() {
-        this._currentLoadingTreeNode = new LoadingTreeNode();
+        const activeSearch = this._manager.activeSearch;
+        this._currentDisplayingSearch = activeSearch;
+
+        let nodeToReveal: TreeNode;
+        if (activeSearch?.resultPromise.isCompleted && activeSearch.resultPromise.getSyncResult().tree.length > 0) {
+            this._currentLoadingNodeDisplayState = LoadingNodeDisplayState.LoadingNodeDisplayIsNotNeeded;
+            nodeToReveal = activeSearch.resultPromise.getSyncResult().tree[0];
+        }
+        else {
+            this._currentLoadingNodeDisplayState = LoadingNodeDisplayState.PendingDisplayLoadingNode;
+            nodeToReveal = LoadingTreeNode.instance;
+        }
+
         this._onDidChangeTreeData.fire();
-        this._treeView.reveal(this._currentLoadingTreeNode, { focus: true });
-        // const searchResult = await this._manager.activeSearch?.resultPromise;
-        // this._treeView.reveal(searchResult!.tree[0], { focus: true });
+        this._treeView.reveal(nodeToReveal, { focus: true });
     }
 
     public getParent(element: TreeNode): vscode.ProviderResult<TreeNode> {
@@ -74,19 +95,35 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     }
 
     public async getChildren(element?: TreeNode): Promise<TreeNode[] | null | undefined> {
-        if (!element) {
-            if (this._currentLoadingTreeNode) {
-                const loadingTreeNode = this._currentLoadingTreeNode;
-                this._currentLoadingTreeNode = undefined;
-                this._onDidChangeTreeData.fire();
-                return [loadingTreeNode];
-            }
-
-            const searchResult = await this._manager.activeSearch?.resultPromise;
-            return searchResult?.tree;
+        if (element) {
+            return await element.getChildren();
         }
 
-        return await element.getChildren();
+        if (!this._currentDisplayingSearch) {
+            return [];
+        }
+
+        if (this._currentLoadingNodeDisplayState === LoadingNodeDisplayState.PendingDisplayLoadingNode) {
+            // Note: show loading node, it's required to be able to focus the view (we rely on 'reveal' for this node)
+            this._currentLoadingNodeDisplayState = LoadingNodeDisplayState.PendingDisplayEmptyTree;
+            this._onDidChangeTreeData.fire();
+            return [LoadingTreeNode.instance];
+        }
+
+        if (this._currentLoadingNodeDisplayState === LoadingNodeDisplayState.PendingDisplayEmptyTree) {
+            // Note: if we return the result promise right now, tree view can be not updated yet (depends
+            //       on how fast view is shown and rendered, can be ~5-100ms based on local testing),
+            //       which leads to the old data being displayed. The only reliable solution I found
+            //       is to display an empty tree temporarily (which triggers 'viewsWelcome' display).
+            //       So we use 'viewsWelcome' to display a loading state and right after this we will
+            //       invalidate the tree once more and then return the actual promise.
+            this._currentLoadingNodeDisplayState = LoadingNodeDisplayState.LoadingNodeDisplayIsNotNeeded;
+            this._onDidChangeTreeData.fire();
+            return [];
+        }
+
+        const searchResult = await this._manager.activeSearch?.resultPromise;
+        return searchResult?.tree;
     }
 
     public dispose() {

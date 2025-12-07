@@ -76,7 +76,7 @@
     "viewsWelcome": [
       {
         "view": "better-navigation.tree",
-        "contents": "No search results. Run a search to see results here."
+        "contents": "$(loading~spin) Loading results..."
       }
     ],
     "commands": [

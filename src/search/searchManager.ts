@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { TrackedPromise } from '../common/trackedPromise';
 import { SearchModel } from '../searchProviders/model';
 import { SearchExecutor } from './searchExecutor';
 import { tryGetSearchTerm } from '../utils';
@@ -17,7 +18,7 @@ export interface TreeNode {
 
 export interface SearchInstance {
     title: string;
-    resultPromise: Promise<SearchResult>;
+    resultPromise: TrackedPromise<SearchResult>;
 }
 
 export interface SearchResult {
@@ -58,7 +59,7 @@ export class SearchController implements vscode.Disposable {
 
         const searchInstance: SearchInstance = {
             title: `'${searchTerm}' ${search.title.toLowerCase()}`,
-            resultPromise: this._searchExecutor.runSearch(search, location.uri, location.selection),
+            resultPromise: new TrackedPromise(this._searchExecutor.runSearch(search, location.uri, location.selection)),
         };
 
         this._searches.push(searchInstance);
