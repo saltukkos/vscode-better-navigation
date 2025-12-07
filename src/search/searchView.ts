@@ -1,6 +1,16 @@
 import * as vscode from 'vscode';
 import { SearchController, TreeNode } from './searchManager';
 
+class LoadingTreeNode implements TreeNode {
+    public readonly hasChildren = false;
+    public readonly label = 'Loading results...';
+    public readonly icon = new vscode.ThemeIcon('loading~spin');
+
+    async getChildren(): Promise<TreeNode[]> {
+        return [];
+    }
+}
+
 export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Disposable {
     private static readonly treeViewId = 'better-navigation.tree';
 
@@ -8,6 +18,7 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined | void>();
     public readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
     private readonly _treeView: vscode.TreeView<TreeNode>;
+    private _currentLoadingTreeNode: LoadingTreeNode | undefined;
 
     constructor(private readonly _manager: SearchController) {
         this._disposable = vscode.Disposable.from(
@@ -18,7 +29,9 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     }
 
     private async onActiveSearchChanged() {
+        this._currentLoadingTreeNode = new LoadingTreeNode();
         this._onDidChangeTreeData.fire();
+        this._treeView.reveal(this._currentLoadingTreeNode, { focus: true });
         // const searchResult = await this._manager.activeSearch?.resultPromise;
         // this._treeView.reveal(searchResult!.tree[0], { focus: true });
     }
@@ -62,6 +75,13 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
 
     public async getChildren(element?: TreeNode): Promise<TreeNode[] | null | undefined> {
         if (!element) {
+            if (this._currentLoadingTreeNode) {
+                const loadingTreeNode = this._currentLoadingTreeNode;
+                this._currentLoadingTreeNode = undefined;
+                this._onDidChangeTreeData.fire();
+                return [loadingTreeNode];
+            }
+
             const searchResult = await this._manager.activeSearch?.resultPromise;
             return searchResult?.tree;
         }
