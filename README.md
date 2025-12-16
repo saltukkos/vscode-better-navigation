@@ -17,4 +17,5 @@
 - [x] Add an optional grouping by the directory
 - [ ] Add an optional grouping by the member
 - [ ] Add an optional grouping by write\read usages (custom API required)
+- [ ] Add an ability to type in results to filter them
 
