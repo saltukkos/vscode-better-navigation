@@ -83,6 +83,7 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
                 title: 'Open',
                 arguments: [element.uri]
             };
+            item.resourceUri = element.uri;
         }
 
         // TODO: expand first item after search is completed

@@ -142,6 +142,8 @@ export class SearchExecutor {
         for (const child of group.children.values()) {
             const f = this.findFirstFileInGroup(child);
             if (f) return f;
+        }
+
         return undefined;
     }
 }
