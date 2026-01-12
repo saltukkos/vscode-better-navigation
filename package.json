@@ -49,6 +49,11 @@
           "description": "Controls whether to group search results by directory structure.",
           "type": "boolean",
           "default": true
+        },
+        "better-navigation.groupByMember": {
+          "description": "Controls whether to group search results by file member.",
+          "type": "boolean",
+          "default": false
         }
       }
     },
@@ -104,15 +109,27 @@
       },
       {
         "command": "better-navigation.enableDirectoryGrouping",
-        "title": "View as Tree",
+        "title": "Enable grouping by directory",
         "category": "Better Navigation",
-        "icon": "$(list-flat)"
+        "icon": "$(folder~disabled)"
       },
       {
         "command": "better-navigation.disableDirectoryGrouping",
-        "title": "View as List",
+        "title": "Disable grouping by directory",
         "category": "Better Navigation",
-        "icon": "$(list-tree)"
+        "icon": "$(folder)"
+      },
+      {
+        "command": "better-navigation.enableMemberGrouping",
+        "title": "Enable grouping by member",
+        "category": "Better Navigation",
+        "icon": "$(symbol-method~disabled)"
+      },
+      {
+        "command": "better-navigation.disableMemberGrouping",
+        "title": "Disable grouping by member",
+        "category": "Better Navigation",
+        "icon": "$(symbol-method)"
       }
     ],
     "menus": {
@@ -143,6 +160,16 @@
           "command": "better-navigation.enableDirectoryGrouping",
           "when": "view == 'better-navigation.tree' && !config.better-navigation.groupByDirectory",
           "group": "navigation@1"
+        },
+        {
+          "command": "better-navigation.disableMemberGrouping",
+          "when": "view == 'better-navigation.tree' && config.better-navigation.groupByMember",
+          "group": "navigation@2"
+        },
+        {
+          "command": "better-navigation.enableMemberGrouping",
+          "when": "view == 'better-navigation.tree' && !config.better-navigation.groupByMember",
+          "group": "navigation@2"
         }
       ]
     },
