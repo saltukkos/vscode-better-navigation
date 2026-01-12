@@ -7,6 +7,7 @@
 - [ ] Implement type hierarchy
 - [x] Add tabs and multisearch
 - [x] Display proper loading states
+    - [ ] Fix the issue when 'loading' is shown when there are no results
 - [ ] Commands and keybindings to switch between tabs\navigate\etc.
 - [ ] Add an ability to navigate to a single result directly
 - [ ] Add reuse of search results:
@@ -18,4 +19,5 @@
 - [ ] Add an optional grouping by the member
 - [ ] Add an optional grouping by write\read usages (custom API required)
 - [ ] Add an ability to type in results to filter them
-
+- [ ] Add counter "N result(s)" to each item in a tree
+- [ ] Use better icons to display the grouping state

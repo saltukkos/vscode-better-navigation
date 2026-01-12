@@ -19,6 +19,9 @@ export interface TreeNode {
 export interface SearchInstance {
     title: string;
     resultPromise: TrackedPromise<SearchResult>;
+    
+    readonly resolvePromise: Promise<vscode.Location[]>;
+    readonly model: SearchModel;
 }
 
 export interface SearchResult {
@@ -57,15 +60,38 @@ export class SearchController implements vscode.Disposable {
             return;
         }
 
+        const resolvePromise = this._searchExecutor.resolveSearch(search, location.uri, location.selection);
+        const resultPromise = resolvePromise.then(locations => {
+             return this._searchExecutor.buildTree(locations, search.itemsIcon);
+        });
+
         const searchInstance: SearchInstance = {
             title: `'${searchTerm}' ${search.title.toLowerCase()}`,
-            resultPromise: new TrackedPromise(this._searchExecutor.runSearch(search, location.uri, location.selection)),
+            resultPromise: new TrackedPromise(resultPromise),
+            resolvePromise: resolvePromise,
+            model: search
         };
 
         this._searches.push(searchInstance);
         this._onDidUpdateSearchList.fire();
         this.setActiveSearch(searchInstance);
         this.updateVisibility();
+    }
+
+    public async rebuildActiveSearchTree() {
+        if (!this._activeSearch) {
+            return;
+        }
+
+        const search = this._activeSearch;
+        // Reuse the resolve promise, but rebuild the tree (which reads config)
+        const resultPromise = search.resolvePromise.then(locations => {
+            return this._searchExecutor.buildTree(locations, search.model.itemsIcon);
+        });
+        
+        search.resultPromise = new TrackedPromise(resultPromise);
+        
+        this._onDidChangeActiveSearch.fire(this._activeSearch);
     }
 
     private getTargetLocation(): { uri: vscode.Uri, selection: vscode.Selection } | undefined {

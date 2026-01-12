@@ -101,6 +101,18 @@
         "title": "Show Subtypes",
         "category": "Types",
         "icon": "$(type-hierarchy-sub)"
+      },
+      {
+        "command": "better-navigation.enableDirectoryGrouping",
+        "title": "View as Tree",
+        "category": "Better Navigation",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "better-navigation.disableDirectoryGrouping",
+        "title": "View as List",
+        "category": "Better Navigation",
+        "icon": "$(list-tree)"
       }
     ],
     "menus": {
@@ -123,7 +135,13 @@
       ],
       "view/title": [
         {
-          "command": "better-navigation.findReferences",
+          "command": "better-navigation.disableDirectoryGrouping",
+          "when": "view == 'better-navigation.tree' && config.better-navigation.groupByDirectory",
+          "group": "navigation@1"
+        },
+        {
+          "command": "better-navigation.enableDirectoryGrouping",
+          "when": "view == 'better-navigation.tree' && !config.better-navigation.groupByDirectory",
           "group": "navigation@1"
         }
       ]

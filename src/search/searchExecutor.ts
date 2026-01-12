@@ -7,8 +7,11 @@ import { FileTreeNode } from './fileTreeNode';
 import { FolderTreeNode } from './folderTreeNode';
 
 export class SearchExecutor {
-    async runSearch(search: SearchModel, uri: vscode.Uri, selection: vscode.Selection): Promise<SearchResult> {
-        const searchResults = await search.resolve(uri, selection);
+    async resolveSearch(search: SearchModel, uri: vscode.Uri, selection: vscode.Selection): Promise<vscode.Location[]> {
+        return search.resolve(uri, selection);
+    }
+
+    public buildTree(searchResults: vscode.Location[], icon: vscode.ThemeIcon | undefined): { tree: TreeNode[], resultsByFile: Map<string, vscode.Range[]> } {
         var resultsByFile = new Map<string, vscode.Range[]>();
         var originalUri = new Map<string, vscode.Uri>();
     
@@ -28,7 +31,7 @@ export class SearchExecutor {
             tree = sortedEntries.map(([fileUriStr, ranges]) => {
                 const uri = originalUri.get(fileUriStr)!;
                 const label = vscode.workspace.asRelativePath(uri);
-                return new FileTreeNode(uri, ranges, search.itemsIcon, label);
+                return new FileTreeNode(uri, ranges, icon, label);
             });
         } else {
             // Get all paths relative to workspace to group them
@@ -50,7 +53,7 @@ export class SearchExecutor {
             }
 
             const rootGroup = groupPaths(paths);
-            tree = this.convertGroupToNodes(rootGroup, relativeToUri, resultsByFile, originalUri, search.itemsIcon);
+            tree = this.convertGroupToNodes(rootGroup, relativeToUri, resultsByFile, originalUri, icon);
         }
 
         return {

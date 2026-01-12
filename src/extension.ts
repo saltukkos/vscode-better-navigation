@@ -5,9 +5,14 @@ import { TabView } from './search/tabView';
 import { ReferencesSearchModel } from './searchProviders/referencesModel';
 import { TypeHierarchySearchModel, TypeHierarchyDirection } from './searchProviders/typesModel';
 
+import { ConfigurationHandler } from './configurationHandler';
+
 export function activate(context: vscode.ExtensionContext): void {
     const controller = new SearchController();
     context.subscriptions.push(controller);
+
+    const configurationHandler = new ConfigurationHandler(controller);
+    context.subscriptions.push(configurationHandler);
 
     const searchView = new SearchView(controller);
     context.subscriptions.push(vscode.window.registerTreeDataProvider('better-navigation.tree', searchView));
@@ -32,3 +37,4 @@ export function activate(context: vscode.ExtensionContext): void {
         })
     );
 }
+
