@@ -45,17 +45,27 @@ export class FileTreeNode implements TreeNode {
                 this.uri
             );
         } catch (e) {
-            // Ignore error, fallback to flat list or just 'other'
+            // Ignore error
         }
 
         if (!symbols || symbols.length === 0) {
-            // No symbols, just add all to "other" or return flat?
-            // Requirement: "If there are items, that do not belong to any file member, they should fall into special 'fake' node"
-            // If NO symbols at all, maybe everything is in "other"?
-            // Or fallback to default view? 
-            // "Depending on this setting... file structure is tree-shaped... items that do not belong... fall into special fake node"
-            // It implies if grouping is ON, we should try to group.
             return [this.createFakeNode(document, this.ranges)];
+        }
+
+        // TODO: cache
+        // Parse excluded types
+        const config = vscode.workspace.getConfiguration('better-navigation');
+        const excludedStr = config.get<string>('excludedMemberTypes', '');
+        const excludedKinds = new Set<vscode.SymbolKind>();
+        if (excludedStr) {
+            excludedStr.split(',').forEach(s => {
+                const name = s.trim();
+                // Map name to enum value
+                const kind = (vscode.SymbolKind as any)[name];
+                if (typeof kind === 'number') {
+                    excludedKinds.add(kind);
+                }
+            });
         }
 
         // Flatten symbols to linear list for easier lookup
@@ -70,50 +80,25 @@ export class FileTreeNode implements TreeNode {
         };
         traverse(symbols);
 
-        // Sort symbols by range start (and end/length for stability?)
-        // To find "deepest", if we sort by start, a child usually starts after parent (or same) and ends before.
-        // Actually, just sorting by start is enough if we pick the *last* symbol that contains the range?
-        // No, siblings might be interleaved if we just sort by start? No, siblings are disjoint.
-        // Hierarchy: Parent [ ... Child [ ... ] ... ]
-        // Sorted by start: Parent, Child.
-        // Both contain the range inside Child.
-        // If we iterate and find all matches, we want the one with smallest range?
-        // Or if we sort by start, the Child comes after Parent. So the *last* matching symbol is the deepest one.
         flatSymbols.sort((a, b) => a.range.start.compareTo(b.range.start));
 
         const resultsByMember = new Map<vscode.DocumentSymbol, vscode.Range[]>();
         const otherRanges: vscode.Range[] = [];
 
-        // Sort ranges to be efficient?
-        // Actually, for each range, we can binary search or just linear search in symbols?
-        // Given N ranges and M symbols. M is small usually.
-        // Let's iterate ranges.
         for (const range of this.ranges) {
              let bestSymbol: vscode.DocumentSymbol | undefined;
              
-             // Find deepest symbol containing this range.
-             // Since symbols are sorted by start, and children come after parents (usually, or we can ensure that),
-             // The last symbol that contains the range is the deepest one.
-             // Wait, if start is same, who comes first?
-             // If Parent start == Child start.
-             // We want Child to be "after" to be picked as last?
-             // Yes. Stable sort or explicit check.
-             // Let's simple check: smallest range length.
-             
-             // Optimization: We could use the user's suggestion of sorting both.
-             // But simple find is robust.
              for (const symbol of flatSymbols) {
                  if (symbol.range.contains(range)) {
-                     // Potential candidate.
+                     // Check exclusion
+                     if (excludedKinds.has(symbol.kind)) {
+                         continue;
+                     }
+
                      if (!bestSymbol) {
                          bestSymbol = symbol;
                      } else {
-                         // Check if this symbol is "deeper" (smaller range)
-                         // OR if it just starts later (which usually means deeper or sibling).
-                         // Containment check ensures it's not a disjoint sibling.
-                         // So if it contains and starts >= bestSymbol.start, it is deeper.
-                         // Actually if it contains, it MUST be a child of bestSymbol (if bestSymbol also contains).
-                         // So we always update bestSymbol.
+                         // Since sorted by start, and checking containment, later symbol is deeper or same level sibling (impossible if contained)
                          bestSymbol = symbol;
                      }
                  }

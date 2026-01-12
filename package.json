@@ -54,6 +54,11 @@
           "description": "Controls whether to group search results by file member.",
           "type": "boolean",
           "default": false
+        },
+        "better-navigation.excludedMemberTypes": {
+            "markdownDescription": "A comma-separated list of SymbolKinds to exclude from member grouping. For example: 'Variable,Constant'. See https://code.visualstudio.com/api/references/vscode-api#SymbolKind for the full list of available types. Only applies when `#better-navigation.groupByMember#` is enabled.",
+            "type": "string",
+            "default": "Variable,String,Number,Boolean,Array,Object,Key,Null,Constant"
         }
       }
     },
@@ -130,6 +135,11 @@
         "title": "Disable grouping by member",
         "category": "Better Navigation",
         "icon": "$(symbol-method)"
+      },
+      {
+        "command": "better-navigation.configureExcludedMemberTypes",
+        "title": "Configure Excluded Members...",
+        "category": "Better Navigation"
       }
     ],
     "menus": {
@@ -170,6 +180,10 @@
           "command": "better-navigation.enableMemberGrouping",
           "when": "view == 'better-navigation.tree' && !config.better-navigation.groupByMember",
           "group": "navigation@2"
+        },
+        {
+          "command": "better-navigation.configureExcludedMemberTypes",
+          "when": "view == 'better-navigation.tree'"
         }
       ]
     },
