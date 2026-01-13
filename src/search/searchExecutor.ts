@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import * as utils from '../utils';
-import { SearchResult, TreeNode } from './searchManager';
+import { TreeNode } from './searchManager';
 import { SearchModel } from '../searchProviders/model';
 import { GroupNode, groupPaths } from './grouping';
 import { FileTreeNode } from './fileTreeNode';
 import { FolderTreeNode } from './folderTreeNode';
+import { NoResultsTreeNode } from './noResultsTreeNode';
 
 export class SearchExecutor {
     async resolveSearch(search: SearchModel, uri: vscode.Uri, selection: vscode.Selection): Promise<vscode.Location[]> {
@@ -18,6 +19,13 @@ export class SearchExecutor {
         for (const result of searchResults) {
             originalUri.set(result.uri.toString(), result.uri);
             utils.getOrCreate(resultsByFile, result.uri.toString(), () => []).push(result.range);
+        }
+
+        if (resultsByFile.size === 0) {
+            return {
+                tree: [new NoResultsTreeNode()],
+                resultsByFile: new Map<string, vscode.Range[]>()
+            };
         }
 
         const shouldGroup = vscode.workspace.getConfiguration('better-navigation').get<boolean>('groupByDirectory', true);

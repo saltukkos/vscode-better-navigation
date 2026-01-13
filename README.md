@@ -7,7 +7,7 @@
 - [ ] Implement type hierarchy
 - [x] Add tabs and multisearch
 - [x] Display proper loading states
-    - [ ] Fix the issue when 'loading' is shown when there are no results
+    - [x] Fix the issue when 'loading' is shown when there are no results
 - [ ] Commands and keybindings to switch between tabs\navigate\etc.
 - [ ] Add an ability to navigate to a single result directly
 - [ ] Add reuse of search results:
