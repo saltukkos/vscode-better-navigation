@@ -19,5 +19,5 @@
 - [x] Add an optional grouping by the member
 - [ ] Add an optional grouping by write\read usages (custom API required)
 - [ ] Add an ability to type in results to filter them
-- [ ] Add counter "N result(s)" to each item in a tree
+- [x] Add counter "N result(s)" to each item in a tree
 - [x] Use better icons to display the grouping state

@@ -5,6 +5,8 @@ import { TreeNode } from './searchManager';
 export class FileTreeNode implements TreeNode {
     public readonly hasChildren = true;
     public readonly icon = vscode.ThemeIcon.File;
+    public readonly matchCount: number;
+    public readonly description: string;
 
     private _childrenPromise: Promise<TreeNode[]> | undefined;
 
@@ -15,6 +17,8 @@ export class FileTreeNode implements TreeNode {
         public readonly label: string
     ) {
         ranges.sort((a, b) => a.start.compareTo(b.start));
+        this.matchCount = ranges.length;
+        this.description = utils.getMatchDescription(this.matchCount);
     }
 
     async getChildren(): Promise<TreeNode[]> {
@@ -149,7 +153,8 @@ export class FileTreeNode implements TreeNode {
              getChildren: async () => children,
              label: symbol.name,
              icon: new vscode.ThemeIcon(iconId),
-             description: `${ranges.length} matches`,
+             description: utils.getMatchDescription(ranges.length),
+             matchCount: ranges.length,
              location: { uri: this.uri, range: symbol.range }
          };
     }
@@ -161,7 +166,8 @@ export class FileTreeNode implements TreeNode {
              getChildren: async () => children,
              label: "(uncategorized)",
              icon: new vscode.ThemeIcon('symbol-misc'),
-             description: `${ranges.length} matches`,
+             description: utils.getMatchDescription(ranges.length),
+             matchCount: ranges.length,
          };
     }
 
@@ -214,7 +220,8 @@ export class FileTreeNode implements TreeNode {
             },
             label,
             description: `${range.start.line + 1}:${range.start.character + 1}`,
-            icon: this.itemsIcon
+            icon: this.itemsIcon,
+            matchCount: 1
         };
     }
 }

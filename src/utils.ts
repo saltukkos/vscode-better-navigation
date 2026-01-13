@@ -151,3 +151,7 @@ export function getThemeIcon(kind: vscode.SymbolKind): vscode.ThemeIcon | undefi
 	const id = _themeIconIds[kind];
 	return id ? new vscode.ThemeIcon(id) : undefined;
 }
+
+export function getMatchDescription(count: number): string {
+    return `${count} match${count === 1 ? '' : 'es'}`;
+}

@@ -10,6 +10,7 @@ export interface TreeNode {
 
     label: vscode.TreeItemLabel | string;
     description?: string;
+    matchCount?: number;
     icon?: vscode.ThemeIcon;
 
     uri?: vscode.Uri;

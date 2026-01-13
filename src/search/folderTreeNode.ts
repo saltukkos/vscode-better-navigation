@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as utils from '../utils';
 import { TreeNode } from './searchManager';
 
 export class FolderTreeNode implements TreeNode {
@@ -6,6 +7,8 @@ export class FolderTreeNode implements TreeNode {
     public readonly icon = vscode.ThemeIcon.Folder;
     public readonly label: string;
     public readonly resourceUri: vscode.Uri;
+    public readonly description: string;
+    public readonly matchCount: number;
     
     constructor(
         resourceUri: vscode.Uri,
@@ -14,11 +17,9 @@ export class FolderTreeNode implements TreeNode {
     ) {
         this.resourceUri = resourceUri;
         this.label = label;
-        // Sort children: folders first, then files.
-        // We can't easily distinguish types here without instance checks, or we assume caller sorts.
-        // Let's sort by label for now to be safe, though usually folders come first.
-        // For now, let's assume the caller constructs the children list in the desired order or we sort by label.
-        // Standard VSCode behavior: Folders first, alphabetical.
+        
+        this.matchCount = children.reduce((sum, child) => sum + (child.matchCount ?? 0), 0);
+        this.description = utils.getMatchDescription(this.matchCount);
     }
 
     async getChildren(): Promise<TreeNode[]> {
