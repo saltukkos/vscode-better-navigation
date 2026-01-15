@@ -113,6 +113,12 @@
         "icon": "$(type-hierarchy-sub)"
       },
       {
+        "command": "better-navigation.showImplementations",
+        "title": "Show Implementations",
+        "category": "Types",
+        "icon": "$(type-hierarchy-sub)"
+      },
+      {
         "command": "better-navigation.enableDirectoryGrouping",
         "title": "Enable grouping by directory",
         "category": "Better Navigation",
@@ -156,6 +162,11 @@
         },
         {
           "command": "better-navigation.showSubtypes",
+          "when": "editorHasTypeHierarchyProvider",
+          "group": "0_navigation@5"
+        },
+        {
+          "command": "better-navigation.showImplementations",
           "when": "editorHasTypeHierarchyProvider",
           "group": "0_navigation@5"
         }

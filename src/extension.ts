@@ -6,6 +6,7 @@ import { ReferencesSearchModel } from './searchProviders/referencesModel';
 import { TypeHierarchySearchModel, TypeHierarchyDirection } from './searchProviders/typesModel';
 
 import { ConfigurationHandler } from './configurationHandler';
+import { ImplementationsSearchModel } from './searchProviders/implementationsModel';
 
 export function activate(context: vscode.ExtensionContext): void {
     const controller = new SearchController();
@@ -24,6 +25,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const referencesModel = new ReferencesSearchModel();
     const supertypesModel = new TypeHierarchySearchModel(TypeHierarchyDirection.Supertypes);
     const subtypesModel = new TypeHierarchySearchModel(TypeHierarchyDirection.Subtypes);
+    const implementationsModel = new ImplementationsSearchModel();
 
     context.subscriptions.push(
         vscode.commands.registerCommand('better-navigation.findReferences', async () => {
@@ -34,6 +36,9 @@ export function activate(context: vscode.ExtensionContext): void {
         }),
         vscode.commands.registerCommand('better-navigation.showSubtypes', async () => {
             await controller.runSearch(subtypesModel);
+        }),
+        vscode.commands.registerCommand('better-navigation.showImplementations', async () => {
+            await controller.runSearch(implementationsModel);
         })
     );
 }
