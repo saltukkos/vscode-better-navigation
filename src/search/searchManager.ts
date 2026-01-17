@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { TrackedPromise } from '../common/trackedPromise';
 import { SearchModel } from '../searchProviders/model';
-import { SearchExecutor } from './searchExecutor';
+import { SearchResult } from './searchResult';
 import { tryGetSearchTerm } from '../utils';
 
 export interface TreeNode {
@@ -25,11 +25,6 @@ export interface SearchInstance {
     readonly model: SearchModel;
 }
 
-export interface SearchResult {
-    resultsByFile: Map<string, vscode.Range[]>;
-    tree: TreeNode[];
-}
-
 export class SearchController implements vscode.Disposable {
     private readonly _searches: SearchInstance[] = [];
     private _activeSearch?: SearchInstance;
@@ -39,8 +34,6 @@ export class SearchController implements vscode.Disposable {
 
     private readonly _onDidUpdateSearchList = new vscode.EventEmitter<void>();
     readonly onDidUpdateSearchList = this._onDidUpdateSearchList.event;
-
-    private readonly _searchExecutor = new SearchExecutor();
 
     public get activeSearch(): SearchInstance | undefined {
         return this._activeSearch;
@@ -61,9 +54,9 @@ export class SearchController implements vscode.Disposable {
             return;
         }
 
-        const resolvePromise = this._searchExecutor.resolveSearch(search, location.uri, location.selection);
+        const resolvePromise = search.resolve(location.uri, location.selection);
         const resultPromise = resolvePromise.then(locations => {
-             return this._searchExecutor.buildTree(locations, search.itemsIcon);
+            return new SearchResult(locations, search.itemsIcon);
         });
 
         const searchInstance: SearchInstance = {
@@ -80,18 +73,16 @@ export class SearchController implements vscode.Disposable {
     }
 
     public async rebuildActiveSearchTree() {
+        for (const search of this._searches) {
+            if (search.resultPromise.isCompleted) {
+                search.resultPromise.getSyncResult().clearTreeCache();
+            }
+        }
+
         if (!this._activeSearch) {
             return;
         }
 
-        const search = this._activeSearch;
-        // Reuse the resolve promise, but rebuild the tree (which reads config)
-        const resultPromise = search.resolvePromise.then(locations => {
-            return this._searchExecutor.buildTree(locations, search.model.itemsIcon);
-        });
-        
-        search.resultPromise = new TrackedPromise(resultPromise);
-        
         this._onDidChangeActiveSearch.fire(this._activeSearch);
     }
 

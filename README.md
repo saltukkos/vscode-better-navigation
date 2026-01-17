@@ -19,7 +19,7 @@
 - [ ] Add an option to show a quickpick instead of tabs (with an option to switch to the tree view)
 - [x] Add an optional grouping by the directory
 - [x] Add an optional grouping by the member
-- [ ] Fix the issue when other trees are not getting rebuild when grouping changed while they were invisible
+- [x] Fix the issue when other trees are not getting rebuild when grouping changed while they were invisible
 - [ ] Grouping by member looks strange when we are searching 'implementations': member is in fact the result (but what if it's a method parameter that looks extremely alike?)
 - [ ] Add an optional grouping by write\read usages (custom API required)
 - [ ] Add an ability to type in results to filter them
