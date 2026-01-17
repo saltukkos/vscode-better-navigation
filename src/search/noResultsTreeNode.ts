@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
-import { TreeNode } from './searchManager';
+import { TreeNode } from './treeNode';
 
 
 export class NoResultsTreeNode implements TreeNode {
     description?: string | undefined;
     uri?: vscode.Uri | undefined;
     location?: vscode.Location | undefined;
+    public readonly id = "noResultsTreeNode";
     public readonly hasChildren = false;
     public readonly icon = new vscode.ThemeIcon('search-stop');
     public readonly label = 'No results found';

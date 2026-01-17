@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as utils from '../utils';
-import { TreeNode } from './searchManager';
+import { TreeNode } from './treeNode';
 
 export class FolderTreeNode implements TreeNode {
     public readonly hasChildren = true;
@@ -9,6 +9,7 @@ export class FolderTreeNode implements TreeNode {
     public readonly resourceUri: vscode.Uri;
     public readonly description: string;
     public readonly matchCount: number;
+    public readonly id: string;
     
     constructor(
         resourceUri: vscode.Uri,
@@ -17,7 +18,8 @@ export class FolderTreeNode implements TreeNode {
     ) {
         this.resourceUri = resourceUri;
         this.label = label;
-        
+        this.id = `folderTreeNode:${this.resourceUri.toString()}`;
+
         this.matchCount = children.reduce((sum, child) => sum + (child.matchCount ?? 0), 0);
         this.description = utils.getMatchDescription(this.matchCount);
     }

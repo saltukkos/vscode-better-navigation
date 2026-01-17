@@ -1,11 +1,14 @@
 import * as vscode from 'vscode';
-import { SearchController, SearchInstance, TreeNode } from './searchManager';
+import { SearchController } from './searchManager';
+import { TreeNode } from './treeNode';
+import { SearchInstance } from './searchInstance';
 
 class LoadingTreeNode implements TreeNode {
     public static readonly instance = new LoadingTreeNode();
 
     public readonly hasChildren = false;
     public readonly label = 'Loading results...';
+    public readonly id = 'loadingTreeNode';
     public readonly icon = new vscode.ThemeIcon('loading~spin');
 
     async getChildren(): Promise<TreeNode[]> {
@@ -28,20 +31,25 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
 
     private _currentLoadingNodeDisplayState: LoadingNodeDisplayState = LoadingNodeDisplayState.LoadingNodeDisplayIsNotNeeded;
     private _currentDisplayingSearch: SearchInstance | undefined;
+    private _shouldExpandFirstItem: boolean = false;
 
     constructor(private readonly _manager: SearchController) {
         this._disposable = vscode.Disposable.from(
             this._onDidChangeTreeData,
             this._treeView = vscode.window.createTreeView(SearchView.treeViewId, { treeDataProvider: this, showCollapseAll: true }),
-            this._manager.onDidChangeActiveSearch(() => this.onActiveSearchChanged()),
+            this._manager.onDidChangeActiveSearch(({ searchInstance, isNewSearch }) => this.onActiveSearchChanged(searchInstance, isNewSearch)),
+            this._treeView.onDidExpandElement(e => this.onElementExpansionChanged(e.element, true)),
+            this._treeView.onDidCollapseElement(e => this.onElementExpansionChanged(e.element, false)),
+            this._treeView.onDidChangeSelection(e => this.onSelectionChanged(e.selection)),
         );
     }
 
     public readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    private async onActiveSearchChanged() {
+    private async onActiveSearchChanged(searchInstance: SearchInstance, isNewSearch: boolean) {
         const activeSearch = this._manager.activeSearch;
         this._currentDisplayingSearch = activeSearch;
+        this._shouldExpandFirstItem = isNewSearch;
 
         let nodeToReveal: TreeNode;
         if (activeSearch?.resultPromise.isCompleted && activeSearch.resultPromise.getSyncResult().tree.length > 0) {
@@ -125,6 +133,38 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
 
         const searchResult = await this._manager.activeSearch?.resultPromise;
         return searchResult?.tree;
+    }
+
+    private onElementExpansionChanged(element: TreeNode, expanded: boolean): void {
+        const nodeId = element.id;
+        if (nodeId == null) {
+            return;
+        }
+
+        if (!this._currentDisplayingSearch?.resultPromise.isCompleted) {
+            return;
+        }
+
+        const searchResult = this._currentDisplayingSearch.resultPromise.getSyncResult();
+        searchResult?.setNodeExpanded(nodeId, expanded);
+    }
+
+    private onSelectionChanged(selection: readonly TreeNode[]): void {
+        if (selection.length !== 1) {
+            return;
+        }
+
+        const nodeId = selection[0].id;
+        if (nodeId == null) {
+            return;
+        }
+
+        if (!this._currentDisplayingSearch?.resultPromise.isCompleted) {
+            return;
+        }
+
+        const searchResult = this._currentDisplayingSearch.resultPromise.getSyncResult();
+        searchResult?.setLastSelectedNode(nodeId);
     }
 
     public dispose() {

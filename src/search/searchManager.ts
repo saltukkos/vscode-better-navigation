@@ -3,33 +3,13 @@ import { TrackedPromise } from '../common/trackedPromise';
 import { SearchModel } from '../searchProviders/model';
 import { SearchResult } from './searchResult';
 import { tryGetSearchTerm } from '../utils';
-
-export interface TreeNode {
-    hasChildren: boolean;
-    getChildren(): Promise<TreeNode[]>;
-
-    label: vscode.TreeItemLabel | string;
-    description?: string;
-    matchCount?: number;
-    icon?: vscode.ThemeIcon;
-
-    uri?: vscode.Uri;
-    location?: vscode.Location;
-}
-
-export interface SearchInstance {
-    title: string;
-    resultPromise: TrackedPromise<SearchResult>;
-    
-    readonly resolvePromise: Promise<vscode.Location[]>;
-    readonly model: SearchModel;
-}
+import { SearchInstance } from './searchInstance';
 
 export class SearchController implements vscode.Disposable {
     private readonly _searches: SearchInstance[] = [];
     private _activeSearch?: SearchInstance;
 
-    private readonly _onDidChangeActiveSearch = new vscode.EventEmitter<SearchInstance | undefined>();
+    private readonly _onDidChangeActiveSearch = new vscode.EventEmitter<{ searchInstance: SearchInstance, isNewSearch: boolean }>();
     readonly onDidChangeActiveSearch = this._onDidChangeActiveSearch.event;
 
     private readonly _onDidUpdateSearchList = new vscode.EventEmitter<void>();
@@ -68,7 +48,7 @@ export class SearchController implements vscode.Disposable {
 
         this._searches.push(searchInstance);
         this._onDidUpdateSearchList.fire();
-        this.setActiveSearch(searchInstance);
+        this.setActiveSearchInternal(searchInstance, true);
         this.updateVisibility();
     }
 
@@ -83,7 +63,7 @@ export class SearchController implements vscode.Disposable {
             return;
         }
 
-        this._onDidChangeActiveSearch.fire(this._activeSearch);
+        this._onDidChangeActiveSearch.fire({ searchInstance: this._activeSearch, isNewSearch: false });
     }
 
     private getTargetLocation(): { uri: vscode.Uri, selection: vscode.Selection } | undefined {
@@ -108,19 +88,23 @@ export class SearchController implements vscode.Disposable {
 
         if (this._activeSearch === search) {
             const next = this._searches[this._searches.length - 1];
-            this.setActiveSearch(next);
+            this.setActiveSearchInternal(next, false);
         }
 
         this.updateVisibility();
     }
 
     public setActiveSearch(search: SearchInstance) {
+        this.setActiveSearchInternal(search, false);
+    }
+
+    private setActiveSearchInternal(search: SearchInstance, isNewSearch: boolean) {
         if (search && !this._searches.includes(search)) {
             throw new Error("Can't set search as active since it is not in the list of searches");
         }
 
         this._activeSearch = search;
-        this._onDidChangeActiveSearch.fire(search);
+        this._onDidChangeActiveSearch.fire({ searchInstance: search, isNewSearch: isNewSearch });
     }
 
     private updateVisibility() {

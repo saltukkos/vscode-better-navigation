@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import * as utils from '../utils';
-import { TreeNode } from './searchManager';
+import { TreeNode } from './treeNode';
 
 export class FileTreeNode implements TreeNode {
     public readonly hasChildren = true;
     public readonly icon = vscode.ThemeIcon.File;
     public readonly matchCount: number;
     public readonly description: string;
+
+    public readonly id: string;
 
     private _childrenPromise: Promise<TreeNode[]> | undefined;
 
@@ -16,9 +18,10 @@ export class FileTreeNode implements TreeNode {
         private readonly itemsIcon: vscode.ThemeIcon | undefined,
         public readonly label: string
     ) {
-        ranges.sort((a, b) => a.start.compareTo(b.start));
         this.matchCount = ranges.length;
         this.description = utils.getMatchDescription(this.matchCount);
+        this.id = `fileTreeNode:${this.uri.toString()}`;
+        ranges.sort((a, b) => a.start.compareTo(b.start));
     }
 
     async getChildren(): Promise<TreeNode[]> {
@@ -151,6 +154,7 @@ export class FileTreeNode implements TreeNode {
          return {
              hasChildren: true,
              getChildren: async () => children,
+             id: `memberNode:${this.uri.toString()}:${symbol.range.start.line}:${symbol.range.start.character}:${symbol.name}`,
              label: symbol.name,
              icon: new vscode.ThemeIcon(iconId),
              description: utils.getMatchDescription(ranges.length),
@@ -164,6 +168,7 @@ export class FileTreeNode implements TreeNode {
          return {
              hasChildren: true,
              getChildren: async () => children,
+             id: `fakeNode:${this.uri.toString()}`,
              label: "(uncategorized)",
              icon: new vscode.ThemeIcon('symbol-misc'),
              description: utils.getMatchDescription(ranges.length),
@@ -214,6 +219,7 @@ export class FileTreeNode implements TreeNode {
         return {
             hasChildren: false,
             getChildren: async () => [],
+            id: `resultNode:${this.uri.toString()}:${range.start.line}:${range.start.character}:${range.end.line}:${range.end.character}`,
             location: {
                 uri: this.uri,
                 range: range

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as utils from '../utils';
-import type { TreeNode } from './searchManager';
+import type { TreeNode } from './treeNode';
 import { GroupNode, groupPaths } from './grouping';
 import { FileTreeNode } from './fileTreeNode';
 import { FolderTreeNode } from './folderTreeNode';
@@ -10,6 +10,8 @@ export class SearchResult {
     private _resultsByFile: Map<string, vscode.Range[]> | undefined;
     private _originalUri: Map<string, vscode.Uri> | undefined;
     private _treeCache: TreeNode[] | undefined;
+    private _expandedNodeIds = new Set<string>();
+    private _lastSelectedNodeId: string | undefined;
 
     constructor(
         private readonly _locations: vscode.Location[],
@@ -18,6 +20,22 @@ export class SearchResult {
 
     public clearTreeCache(): void {
         this._treeCache = undefined;
+    }
+
+    public setNodeExpanded(nodeId: string, expanded: boolean): void {
+        if (expanded) {
+            this._expandedNodeIds.add(nodeId);
+        } else {
+            this._expandedNodeIds.delete(nodeId);
+        }
+    }
+
+    public setLastSelectedNode(nodeId: string): void {
+        this._lastSelectedNodeId = nodeId;
+    }
+
+    public getExpandedNodeIds(): ReadonlySet<string> {
+        return this._expandedNodeIds;
     }
 
     public get resultsByFile(): Map<string, vscode.Range[]> {
