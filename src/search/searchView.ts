@@ -16,96 +16,120 @@ class LoadingTreeNode implements TreeNode {
     }
 }
 
+class TreeNodeWrapper {
+    constructor(
+        public readonly node: TreeNode,
+        public readonly isFirst: boolean,
+        public readonly searchInstance: SearchInstance,
+        // TODO: we can store parent here for 'reveal' to work
+    ) {}
+}
+
 enum LoadingNodeDisplayState {
     PendingDisplayLoadingNode,
     PendingDisplayEmptyTree,
     LoadingNodeDisplayIsNotNeeded
 }
 
-export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Disposable {
+export class SearchView implements vscode.TreeDataProvider<TreeNodeWrapper>, vscode.Disposable {
     private static readonly treeViewId = 'better-navigation.tree';
 
     private readonly _disposable: vscode.Disposable;
-    private readonly _treeView: vscode.TreeView<TreeNode>;
-    private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined | void>();
+    private readonly _treeView: vscode.TreeView<TreeNodeWrapper>;
+    private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeNodeWrapper | undefined | void>();
 
     private _currentLoadingNodeDisplayState: LoadingNodeDisplayState = LoadingNodeDisplayState.LoadingNodeDisplayIsNotNeeded;
     private _currentDisplayingSearch: SearchInstance | undefined;
-    private _shouldExpandFirstItem: boolean = false;
 
-    constructor(private readonly _manager: SearchController) {
+    constructor(searchController: SearchController) {
         this._disposable = vscode.Disposable.from(
             this._onDidChangeTreeData,
             this._treeView = vscode.window.createTreeView(SearchView.treeViewId, { treeDataProvider: this, showCollapseAll: true }),
-            this._manager.onDidChangeActiveSearch(({ searchInstance, isNewSearch }) => this.onActiveSearchChanged(searchInstance, isNewSearch)),
-            this._treeView.onDidExpandElement(e => this.onElementExpansionChanged(e.element, true)),
-            this._treeView.onDidCollapseElement(e => this.onElementExpansionChanged(e.element, false)),
+            this._treeView.onDidExpandElement(e => this.onElementExpansionChanged(e.element.node, true)),
+            this._treeView.onDidCollapseElement(e => this.onElementExpansionChanged(e.element.node, false)),
             this._treeView.onDidChangeSelection(e => this.onSelectionChanged(e.selection)),
+            searchController.onDidChangeActiveSearch(({ searchInstance, isNewSearch }) => this.onActiveSearchChanged(searchInstance, isNewSearch)),
         );
     }
 
     public readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    private async onActiveSearchChanged(searchInstance: SearchInstance, isNewSearch: boolean) {
-        const activeSearch = this._manager.activeSearch;
+    private async onActiveSearchChanged(activeSearch: SearchInstance, isNewSearch: boolean) {
         this._currentDisplayingSearch = activeSearch;
-        this._shouldExpandFirstItem = isNewSearch;
 
-        let nodeToReveal: TreeNode;
+        let nodeToReveal: TreeNodeWrapper;
         if (activeSearch?.resultPromise.isCompleted && activeSearch.resultPromise.getSyncResult().tree.length > 0) {
             this._currentLoadingNodeDisplayState = LoadingNodeDisplayState.LoadingNodeDisplayIsNotNeeded;
-            nodeToReveal = activeSearch.resultPromise.getSyncResult().tree[0];
+            nodeToReveal = new TreeNodeWrapper(activeSearch.resultPromise.getSyncResult().tree[0], true, activeSearch);
         }
-        else {
+        else
+        {
             this._currentLoadingNodeDisplayState = LoadingNodeDisplayState.PendingDisplayLoadingNode;
-            nodeToReveal = LoadingTreeNode.instance;
+            nodeToReveal = new TreeNodeWrapper(LoadingTreeNode.instance, false, activeSearch);
         }
 
         this._onDidChangeTreeData.fire();
+        // Note: this reveal is only to focus the tree view, actual reveal
+        //       of the required node (asynchronous) will be done later
         this._treeView.reveal(nodeToReveal, { focus: true });
     }
 
-    public getParent(element: TreeNode): vscode.ProviderResult<TreeNode> {
+    public getParent(element: TreeNodeWrapper): vscode.ProviderResult<TreeNodeWrapper> {
         return undefined;
     }
 
-    public getTreeItem(element: TreeNode): vscode.TreeItem {
-        const item = new vscode.TreeItem(element.label);
+    public getTreeItem(element: TreeNodeWrapper): vscode.TreeItem {
+        const node = element.node;
+        const item = new vscode.TreeItem(node.label);
+        // Note: append search instance id to the node id in order to disable vsCode's
+        //       tree state (expansion and selection) restore when switching between searches.
+        item.id = `${element.searchInstance.id}:${node.id}`;
 
-        if (element.description !== undefined) {
-            item.description = element.description;
+        if (node.description !== undefined) {
+            item.description = node.description;
         }
-        if (element.icon) {
-            item.iconPath = element.icon;
+        if (node.icon) {
+            item.iconPath = node.icon;
         }
         
-        if (element.location) {
+        if (node.location) {
             item.command = {
                 command: 'vscode.open',
                 title: 'Open',
-                arguments: [element.location.uri, { selection: element.location.range }]
+                arguments: [node.location.uri, { selection: node.location.range }]
             };
-        } else if (element.uri) {
+        } else if (node.uri) {
             item.command = {
                 command: 'vscode.open',
                 title: 'Open',
-                arguments: [element.uri]
+                arguments: [node.uri]
             };
-            item.resourceUri = element.uri;
+            item.resourceUri = node.uri;
         }
 
-        // TODO: expand first item after search is completed
-        // TODO: keep expanded state when switching between tabs
-        item.collapsibleState = element.hasChildren 
-            ? vscode.TreeItemCollapsibleState.Collapsed 
-            : vscode.TreeItemCollapsibleState.None;
+        if (!node.hasChildren) {
+            item.collapsibleState = vscode.TreeItemCollapsibleState.None;
+        } else {
+            item.collapsibleState = this.shouldExpandNode(element)
+                ? vscode.TreeItemCollapsibleState.Expanded
+                : vscode.TreeItemCollapsibleState.Collapsed;
+        }
 
         return item;
     }
 
-    public async getChildren(element?: TreeNode): Promise<TreeNode[] | null | undefined> {
+    private shouldExpandNode(element: TreeNodeWrapper): boolean {
+        // TODO: expand if the only child (but avoid problems when loading is asynchronous,
+        //       in this case old tree will be displayed, unless all children are loaded)
+        const searchResult = this._currentDisplayingSearch?.resultPromise.getSyncResultOrUndefined();
+        return searchResult?.isNodeExpanded(element.node.id) ?? false;
+    }
+
+    public async getChildren(element?: TreeNodeWrapper): Promise<TreeNodeWrapper[] | null | undefined> {
         if (element) {
-            return await element.getChildren();
+            const searchResult = await element.searchInstance.resultPromise;
+            const children = await searchResult.getChildren(element.node);
+            return this.wrapNodes(element, element.searchInstance, children);
         }
 
         if (!this._currentDisplayingSearch) {
@@ -116,7 +140,7 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
             // Note: show loading node, it's required to be able to focus the view (we rely on 'reveal' for this node)
             this._currentLoadingNodeDisplayState = LoadingNodeDisplayState.PendingDisplayEmptyTree;
             this._onDidChangeTreeData.fire();
-            return [LoadingTreeNode.instance];
+            return [new TreeNodeWrapper(LoadingTreeNode.instance, false, this._currentDisplayingSearch)];
         }
 
         if (this._currentLoadingNodeDisplayState === LoadingNodeDisplayState.PendingDisplayEmptyTree) {
@@ -131,8 +155,12 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
             return [];
         }
 
-        const searchResult = await this._manager.activeSearch?.resultPromise;
-        return searchResult?.tree;
+        const searchResult = await this._currentDisplayingSearch.resultPromise;
+        return searchResult?.tree ? this.wrapNodes(undefined, this._currentDisplayingSearch, searchResult.tree) : undefined;
+    }
+
+    private wrapNodes(element: TreeNodeWrapper | undefined, searchInstance: SearchInstance, nodes: TreeNode[]): TreeNodeWrapper[] {
+        return nodes.map((node, index) => new TreeNodeWrapper(node, index === 0 && (element == null || element.isFirst), searchInstance));
     }
 
     private onElementExpansionChanged(element: TreeNode, expanded: boolean): void {
@@ -141,29 +169,21 @@ export class SearchView implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
             return;
         }
 
-        if (!this._currentDisplayingSearch?.resultPromise.isCompleted) {
-            return;
-        }
-
-        const searchResult = this._currentDisplayingSearch.resultPromise.getSyncResult();
+        const searchResult = this._currentDisplayingSearch?.resultPromise.getSyncResultOrUndefined();
         searchResult?.setNodeExpanded(nodeId, expanded);
     }
 
-    private onSelectionChanged(selection: readonly TreeNode[]): void {
+    private onSelectionChanged(selection: readonly TreeNodeWrapper[]): void {
         if (selection.length !== 1) {
             return;
         }
 
-        const nodeId = selection[0].id;
+        const nodeId = selection[0].node.id;
         if (nodeId == null) {
             return;
         }
 
-        if (!this._currentDisplayingSearch?.resultPromise.isCompleted) {
-            return;
-        }
-
-        const searchResult = this._currentDisplayingSearch.resultPromise.getSyncResult();
+        const searchResult = this._currentDisplayingSearch?.resultPromise.getSyncResultOrUndefined();
         searchResult?.setLastSelectedNode(nodeId);
     }
 

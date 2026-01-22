@@ -13,7 +13,7 @@ export class SearchResult {
     private _treeCache: TreeNode[] | undefined;
     private _childrenPromises: Map<string, Promise<TreeNode[]>> | undefined;
     private readonly _nodeDataStorage = new DataStorage();
-    private _collapsedNodeIds = new Set<string>(); // Note: keep collapsed nodes (as the result, all nodes are expanded by default)
+    private _expandedNodeIds = new Set<string>();
     private _lastSelectedNodeId: string | undefined;
 
     constructor(
@@ -28,9 +28,9 @@ export class SearchResult {
 
     public setNodeExpanded(nodeId: string, expanded: boolean): void {
         if (expanded) {
-            this._collapsedNodeIds.delete(nodeId);
+            this._expandedNodeIds.add(nodeId);
         } else {
-            this._collapsedNodeIds.add(nodeId);
+            this._expandedNodeIds.delete(nodeId);
         }
     }
 
@@ -38,8 +38,8 @@ export class SearchResult {
         this._lastSelectedNodeId = nodeId;
     }
 
-    public getCollapsedNodeIds(): ReadonlySet<string> {
-        return this._collapsedNodeIds;
+    public isNodeExpanded(nodeId: string): boolean {
+        return this._expandedNodeIds.has(nodeId);
     }
 
     public get resultsByFile(): Map<string, vscode.Range[]> {
