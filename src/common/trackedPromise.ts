@@ -38,6 +38,16 @@ export class TrackedPromise<T> implements Promise<T> {
         return this._result!;
     }
 
+    public getSyncResultOrUndefined(): T | undefined {
+        if (!this._isCompleted) {
+            return undefined;
+        }
+        if (this._error) {
+            throw this._error;
+        }
+        return this._result!;
+    }
+
     public then<TResult1 = T, TResult2 = never>(
         onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null, 
         onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null

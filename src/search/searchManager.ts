@@ -8,6 +8,7 @@ import { SearchInstance } from './searchInstance';
 export class SearchController implements vscode.Disposable {
     private readonly _searches: SearchInstance[] = [];
     private _activeSearch?: SearchInstance;
+    private _searchIdCounter = 0;
 
     private readonly _onDidChangeActiveSearch = new vscode.EventEmitter<{ searchInstance: SearchInstance, isNewSearch: boolean }>();
     readonly onDidChangeActiveSearch = this._onDidChangeActiveSearch.event;
@@ -40,9 +41,9 @@ export class SearchController implements vscode.Disposable {
         });
 
         const searchInstance: SearchInstance = {
+            id: `${this._searchIdCounter++}`,
             title: `'${searchTerm}' ${search.title.toLowerCase()}`,
             resultPromise: new TrackedPromise(resultPromise),
-            resolvePromise: resolvePromise,
             model: search
         };
 

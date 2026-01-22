@@ -16,7 +16,6 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(configurationHandler);
 
     const searchView = new SearchView(controller);
-    context.subscriptions.push(vscode.window.registerTreeDataProvider('better-navigation.tree', searchView));
     context.subscriptions.push(searchView);
 
     const tabView = new TabView(context.extensionUri, controller);

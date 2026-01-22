@@ -5,12 +5,15 @@ import { GroupNode, groupPaths } from './grouping';
 import { FileTreeNode } from './fileTreeNode';
 import { FolderTreeNode } from './folderTreeNode';
 import { NoResultsTreeNode } from './noResultsTreeNode';
+import { DataStorage } from './dataStorage';
 
 export class SearchResult {
     private _resultsByFile: Map<string, vscode.Range[]> | undefined;
     private _originalUri: Map<string, vscode.Uri> | undefined;
     private _treeCache: TreeNode[] | undefined;
-    private _expandedNodeIds = new Set<string>();
+    private _childrenPromises: Map<string, Promise<TreeNode[]>> | undefined;
+    private readonly _nodeDataStorage = new DataStorage();
+    private _collapsedNodeIds = new Set<string>(); // Note: keep collapsed nodes (as the result, all nodes are expanded by default)
     private _lastSelectedNodeId: string | undefined;
 
     constructor(
@@ -20,13 +23,14 @@ export class SearchResult {
 
     public clearTreeCache(): void {
         this._treeCache = undefined;
+        this._childrenPromises = undefined;
     }
 
     public setNodeExpanded(nodeId: string, expanded: boolean): void {
         if (expanded) {
-            this._expandedNodeIds.add(nodeId);
+            this._collapsedNodeIds.delete(nodeId);
         } else {
-            this._expandedNodeIds.delete(nodeId);
+            this._collapsedNodeIds.add(nodeId);
         }
     }
 
@@ -34,13 +38,21 @@ export class SearchResult {
         this._lastSelectedNodeId = nodeId;
     }
 
-    public getExpandedNodeIds(): ReadonlySet<string> {
-        return this._expandedNodeIds;
+    public getCollapsedNodeIds(): ReadonlySet<string> {
+        return this._collapsedNodeIds;
     }
 
     public get resultsByFile(): Map<string, vscode.Range[]> {
         this.ensureResultsByFile();
         return this._resultsByFile!;
+    }
+
+    public async getChildren(node: TreeNode): Promise<TreeNode[]> {
+        if (!this._childrenPromises) {
+            this._childrenPromises = new Map();
+        }
+
+        return utils.getOrCreate(this._childrenPromises, node.id, () => node.getChildren(this._nodeDataStorage));
     }
 
     public get tree(): TreeNode[] {

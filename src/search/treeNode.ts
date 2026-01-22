@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
+import { DataStorage } from './dataStorage';
 
 export interface TreeNode {
     hasChildren: boolean;
-    getChildren(): Promise<TreeNode[]>;
+    getChildren(dataStorage: DataStorage): Promise<TreeNode[]>;
 
-    id: string | undefined;
+    id: string;
     label: vscode.TreeItemLabel | string;
     description?: string;
     matchCount?: number;

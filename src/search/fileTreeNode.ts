@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as utils from '../utils';
 import { TreeNode } from './treeNode';
+import { DataKey, DataStorage } from './dataStorage';
+
+const documentSymbolsKey = new DataKey<Promise<vscode.DocumentSymbol[]>>('documentSymbols');
 
 export class FileTreeNode implements TreeNode {
     public readonly hasChildren = true;
@@ -9,8 +12,6 @@ export class FileTreeNode implements TreeNode {
     public readonly description: string;
 
     public readonly id: string;
-
-    private _childrenPromise: Promise<TreeNode[]> | undefined;
 
     constructor(
         readonly uri: vscode.Uri,
@@ -24,33 +25,27 @@ export class FileTreeNode implements TreeNode {
         ranges.sort((a, b) => a.start.compareTo(b.start));
     }
 
-    async getChildren(): Promise<TreeNode[]> {
-        if (this._childrenPromise !== undefined) {
-            return this._childrenPromise;
-        }
-
-        this._childrenPromise = this.loadChildren();
-        return this._childrenPromise;
-    }
-
-    private async loadChildren(): Promise<TreeNode[]> {
+    async getChildren(dataStorage: DataStorage): Promise<TreeNode[]> {
+        // TODO: Need to cache document or previewChunks
         const document = await vscode.workspace.openTextDocument(this.uri);
         const groupByMember = vscode.workspace.getConfiguration('better-navigation').get<boolean>('groupByMember', false);
 
         if (groupByMember) {
-             return this.groupResultsByMember(document);
+             return this.groupResultsByMember(document, dataStorage);
         }
 
         return this.ranges.map((range) => this.loadChild(document, range));
     }
 
-    private async groupResultsByMember(document: vscode.TextDocument): Promise<TreeNode[]> {
+    private async groupResultsByMember(document: vscode.TextDocument, dataStorage: DataStorage): Promise<TreeNode[]> {
         let symbols: vscode.DocumentSymbol[] | undefined;
         try {
-            symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
-                'vscode.executeDocumentSymbolProvider',
-                this.uri
-            );
+            symbols = await dataStorage.getOrCreate(documentSymbolsKey, this.uri.toString(), async () => {
+                 return await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+                    'vscode.executeDocumentSymbolProvider',
+                    this.uri
+                );
+            });
         } catch (e) {
             // Ignore error
         }
