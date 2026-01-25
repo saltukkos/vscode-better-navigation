@@ -221,6 +221,21 @@ export class SearchView implements vscode.TreeDataProvider<TreeNodeWrapper>, vsc
         }
     }
 
+    public async expandAll(): Promise<void> {
+        if (!this._currentDisplayingSearch) {
+            return;
+        }
+
+        const result = this._currentDisplayingSearch.resultPromise.getSyncResultOrUndefined();
+        if (!result) {
+            return;
+        }
+
+        await result.expandAll();
+        this._currentLoadingNodeDisplayState = LoadingNodeDisplayState.PendingDisplayLoadingNode;
+        this._onDidChangeTreeData.fire();
+    }
+
     public async goToFollowingResult(forward: boolean): Promise<void> {
         if (!this._currentDisplayingSearch) {
             return;

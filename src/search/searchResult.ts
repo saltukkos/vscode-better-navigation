@@ -47,6 +47,18 @@ export class SearchResult {
         return this._expandedNodeIds.has(nodeId.toString());
     }
 
+    public async expandAll(): Promise<void> {
+        await this.expandRecursively(this.tree);
+    }
+
+    private async expandRecursively(nodes: TreeNode[]): Promise<void> {
+        await Promise.all(nodes.map(async node => {
+            const children = await this.getChildren(node);
+            this.setNodeExpanded(node.nodeId, true);
+            await this.expandRecursively(children);
+        }));
+    }
+
     public get resultsByFile(): Map<string, vscode.Range[]> {
         this.ensureResultsByFile();
         return this._resultsByFile!;

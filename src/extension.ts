@@ -44,6 +44,9 @@ export function activate(context: vscode.ExtensionContext): void {
         }),
         vscode.commands.registerCommand('better-navigation.previousResult', async () => {
             await searchView.goToFollowingResult(false);
+        }),
+        vscode.commands.registerCommand('better-navigation.expandAll', async () => {
+            await searchView.expandAll();
         })
     );
 }
