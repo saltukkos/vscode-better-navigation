@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as utils from '../utils';
 import type { TreeNode } from './treeNode';
+import { NodeId } from './nodeId';
 import { GroupNode, groupPaths } from './grouping';
 import { FileTreeNode } from './fileTreeNode';
 import { FolderTreeNode } from './folderTreeNode';
@@ -14,7 +15,7 @@ export class SearchResult {
     private _childrenPromises: Map<string, Promise<TreeNode[]>> | undefined;
     private readonly _nodeDataStorage = new DataStorage();
     private _expandedNodeIds = new Set<string>();
-    private _lastSelectedNodeId: string | undefined;
+    private _lastSelectedNodeId: NodeId | undefined;
 
     constructor(
         private readonly _locations: vscode.Location[],
@@ -26,20 +27,24 @@ export class SearchResult {
         this._childrenPromises = undefined;
     }
 
-    public setNodeExpanded(nodeId: string, expanded: boolean): void {
+    public setNodeExpanded(nodeId: NodeId, expanded: boolean): void {
         if (expanded) {
-            this._expandedNodeIds.add(nodeId);
+            this._expandedNodeIds.add(nodeId.toString());
         } else {
-            this._expandedNodeIds.delete(nodeId);
+            this._expandedNodeIds.delete(nodeId.toString());
         }
     }
 
-    public setLastSelectedNode(nodeId: string): void {
+    public getLastSelectedNode(): NodeId | undefined {
+        return this._lastSelectedNodeId;
+    }
+
+    public setLastSelectedNode(nodeId: NodeId): void {
         this._lastSelectedNodeId = nodeId;
     }
 
-    public isNodeExpanded(nodeId: string): boolean {
-        return this._expandedNodeIds.has(nodeId);
+    public isNodeExpanded(nodeId: NodeId): boolean {
+        return this._expandedNodeIds.has(nodeId.toString());
     }
 
     public get resultsByFile(): Map<string, vscode.Range[]> {
@@ -52,7 +57,7 @@ export class SearchResult {
             this._childrenPromises = new Map();
         }
 
-        return utils.getOrCreate(this._childrenPromises, node.id, () => node.getChildren(this._nodeDataStorage));
+        return utils.getOrCreate(this._childrenPromises, node.nodeId.toString(), () => node.getChildren(this._nodeDataStorage));
     }
 
     public get tree(): TreeNode[] {
@@ -174,4 +179,52 @@ export class SearchResult {
 
         return undefined;
     }
+
+    public async getPathFromRoot(targetId: NodeId): Promise<TreeNode[]> {
+        const tree = this.tree;
+        const result = await this.findBestPath(tree, targetId, []);
+        return result.path;
+    }
+
+    private async findBestPath(nodes: TreeNode[], targetId: NodeId, currentPath: TreeNode[]): Promise<{ foundExact: boolean; path: TreeNode[]; matchLength: number }> {
+
+        let bestResult = { foundExact: false, path: [...currentPath], matchLength: 0 };
+        
+        // Update best match length based on current tail
+        if (currentPath.length > 0) {
+             const tail = currentPath[currentPath.length - 1];
+             if (tail.nodeId.uri && targetId.uri && targetId.uri.toString().startsWith(tail.nodeId.uri.toString())) {
+                 bestResult.matchLength = tail.nodeId.uri.toString().length;
+             }
+        }
+
+        for (const node of nodes) {
+            // Check exact match
+             if (node.nodeId.toString() === targetId.toString()) {
+                 return { foundExact: true, path: [...currentPath, node], matchLength: Number.MAX_SAFE_INTEGER };
+             }
+
+             // Check if prefix
+             const nodeUriStr = node.nodeId.uri?.toString();
+             const targetUriStr = targetId.uri?.toString();
+             
+             if (nodeUriStr && targetUriStr && targetUriStr.startsWith(nodeUriStr)) {
+                 // It's a candidate path
+                 const children = await this.getChildren(node);
+                 const result = await this.findBestPath(children, targetId, [...currentPath, node]);
+                 
+                 if (result.foundExact) {
+                     return result;
+                 }
+                 
+                 if (result.matchLength > bestResult.matchLength) {
+                     bestResult = result;
+                 }
+             }
+        }
+        
+        return bestResult;
+    }
+
+    // TODO: implement 'getNextLeafNode'
 }

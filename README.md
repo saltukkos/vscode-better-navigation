@@ -6,8 +6,9 @@
 - [ ] Implement incoming calls
 - [ ] Implement type hierarchy
 - [x] Add tabs and multisearch
-- [ ] Auto-expand first result in tree view (and alwaysauto-expand single child)
-- [ ] Preserve expanded state and selected element after rebuilding the tree and switching between results
+- [x] Auto-expand first result in tree view
+- [ ] Auto-expand single child (but only on click)
+- [x] Preserve expanded state and selected element after rebuilding the tree and switching between results
 - [x] Display proper loading states
     - [x] Fix the issue when 'loading' is shown when there are no results
 - [ ] Commands and keybindings to switch between tabs\navigate\etc.

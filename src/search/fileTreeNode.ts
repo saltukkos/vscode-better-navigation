@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as utils from '../utils';
 import { TreeNode } from './treeNode';
+import { NodeId } from './nodeId';
 import { DataKey, DataStorage } from './dataStorage';
 
 const documentSymbolsKey = new DataKey<Promise<vscode.DocumentSymbol[]>>('documentSymbols');
@@ -10,8 +11,7 @@ export class FileTreeNode implements TreeNode {
     public readonly icon = vscode.ThemeIcon.File;
     public readonly matchCount: number;
     public readonly description: string;
-
-    public readonly id: string;
+    public readonly nodeId: NodeId;
 
     constructor(
         readonly uri: vscode.Uri,
@@ -21,7 +21,7 @@ export class FileTreeNode implements TreeNode {
     ) {
         this.matchCount = ranges.length;
         this.description = utils.getMatchDescription(this.matchCount);
-        this.id = `fileTreeNode:${this.uri.toString()}`;
+        this.nodeId = new NodeId('file', this.uri);
         ranges.sort((a, b) => a.start.compareTo(b.start));
     }
 
@@ -149,7 +149,7 @@ export class FileTreeNode implements TreeNode {
          return {
              hasChildren: true,
              getChildren: async () => children,
-             id: `memberNode:${this.uri.toString()}:${symbol.range.start.line}:${symbol.range.start.character}:${symbol.name}`,
+             nodeId: new NodeId('member', this.uri, symbol.range),
              label: symbol.name,
              icon: new vscode.ThemeIcon(iconId),
              description: utils.getMatchDescription(ranges.length),
@@ -163,7 +163,7 @@ export class FileTreeNode implements TreeNode {
          return {
              hasChildren: true,
              getChildren: async () => children,
-             id: `fakeNode:${this.uri.toString()}`,
+             nodeId: new NodeId('fakeMember', this.uri),
              label: "(uncategorized)",
              icon: new vscode.ThemeIcon('symbol-misc'),
              description: utils.getMatchDescription(ranges.length),
@@ -212,10 +212,10 @@ export class FileTreeNode implements TreeNode {
         };
 
         return {
-            hasChildren: false,
-            getChildren: async () => [],
-            id: `resultNode:${this.uri.toString()}:${range.start.line}:${range.start.character}:${range.end.line}:${range.end.character}`,
-            location: {
+             hasChildren: false,
+             getChildren: async () => [],
+             nodeId: new NodeId('result', this.uri, range),
+             location: {
                 uri: this.uri,
                 range: range
             },
