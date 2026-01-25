@@ -158,6 +158,7 @@
         "command": "better-navigation.expandAll",
         "title": "Expand All",
         "category": "Better Navigation",
+        "enablement": "___never",
         "icon": "$(expand-all)"
       },
       {
@@ -246,7 +247,7 @@
         },
         {
           "command": "better-navigation.expandAll",
-          "when": "view == 'better-navigation.tree'",
+          "when": "view == 'better-navigation.tree' && ___never",
           "group": "navigation@7"
         },
         {
