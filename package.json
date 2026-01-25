@@ -143,6 +143,18 @@
         "icon": "$(symbol-method)"
       },
       {
+        "command": "better-navigation.nextResult",
+        "title": "Go to Next Result",
+        "category": "Better Navigation",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "better-navigation.previousResult",
+        "title": "Go to Previous Result",
+        "category": "Better Navigation",
+        "icon": "$(arrow-up)"
+      },
+      {
         "command": "better-navigation.expandAll",
         "title": "Expand All",
         "category": "Better Navigation",
@@ -154,7 +166,14 @@
         "category": "Better Navigation"
       },
       {
-        "command": "better-navigation.separator",
+        "command": "better-navigation.separator1",
+        "title": "​",
+        "shortTitle": "|",
+        "category": "Better Navigation",
+        "enablement": "never"
+      },
+      {
+        "command": "better-navigation.separator2",
         "title": "​",
         "shortTitle": "|",
         "category": "Better Navigation",
@@ -206,14 +225,29 @@
           "group": "navigation@2"
         },
         {
-          "command": "better-navigation.separator",
+          "command": "better-navigation.separator1",
           "when": "view == 'better-navigation.tree'",
           "group": "navigation@3"
         },
         {
-          "command": "better-navigation.expandAll",
+          "command": "better-navigation.previousResult",
           "when": "view == 'better-navigation.tree'",
           "group": "navigation@4"
+        },
+        {
+          "command": "better-navigation.nextResult",
+          "when": "view == 'better-navigation.tree'",
+          "group": "navigation@5"
+        },
+        {
+          "command": "better-navigation.separator2",
+          "when": "view == 'better-navigation.tree'",
+          "group": "navigation@6"
+        },
+        {
+          "command": "better-navigation.expandAll",
+          "when": "view == 'better-navigation.tree'",
+          "group": "navigation@7"
         },
         {
           "command": "better-navigation.configureExcludedMemberTypes",

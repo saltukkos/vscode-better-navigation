@@ -215,13 +215,30 @@ export class SearchView implements vscode.TreeDataProvider<TreeNodeWrapper>, vsc
     }
 
     private async revealFirstNode(searchInstance: SearchInstance): Promise<void> {
-        const nextNode = await this.getNextLeafNode(undefined, searchInstance);
+        const nextNode = await this.navigate(undefined, searchInstance, true);
         if (nextNode) {
             this._treeView.reveal(nextNode, { focus: true });
         }
     }
 
-    public async getNextLeafNode(currentNode: TreeNodeWrapper | undefined, searchInstance: SearchInstance): Promise<TreeNodeWrapper | undefined> {
+    public async goToFollowingResult(forward: boolean): Promise<void> {
+        if (!this._currentDisplayingSearch) {
+            return;
+        }
+
+        const selection = this._treeView.selection.length === 1 ? this._treeView.selection[0] : undefined;
+        const nextNode = await this.navigate(selection, this._currentDisplayingSearch, forward);
+        if (nextNode) {
+             this._treeView.reveal(nextNode, { select: true });
+
+             const treeItem = this.getTreeItem(nextNode);
+             if (treeItem.command) {
+                 await vscode.commands.executeCommand(treeItem.command.command, ...(treeItem.command.arguments || []));
+             }
+        }
+    }
+
+    private async navigate(currentNode: TreeNodeWrapper | undefined, searchInstance: SearchInstance, forward: boolean): Promise<TreeNodeWrapper | undefined> {
         const searchResult = await searchInstance.resultPromise;
 
         if (!searchResult) {
@@ -231,16 +248,17 @@ export class SearchView implements vscode.TreeDataProvider<TreeNodeWrapper>, vsc
         if (!currentNode) {
             const roots = searchResult.tree;
             if (roots.length > 0) {
-                return this.getFirstLeaf(new TreeNodeWrapper(undefined, roots[0], searchInstance));
+                const root = forward ? roots[0] : roots[roots.length - 1];
+                return this.getDeepestNode(new TreeNodeWrapper(undefined, root, searchInstance), forward);
             }
 
             return undefined;
         }
 
-        if (currentNode.node.hasChildren) {
+        if (forward && currentNode.node.hasChildren) {
             const children = await searchResult.getChildren(currentNode.node);
             if (children.length > 0) {
-                return this.getFirstLeaf(currentNode);
+                return this.getDeepestNode(currentNode, true);
             }
         }
 
@@ -250,8 +268,17 @@ export class SearchView implements vscode.TreeDataProvider<TreeNodeWrapper>, vsc
             const siblings = parent ? await searchResult.getChildren(parent.node) : searchResult.tree;
 
             const index = siblings.findIndex(s => s.nodeId.toString() === current!.node.nodeId.toString());
-            if (index !== -1 && index + 1 < siblings.length) {
-                return this.getFirstLeaf(new TreeNodeWrapper(parent, siblings[index + 1], searchInstance));
+            
+            if (index !== -1) {
+                if (forward) {
+                     if (index + 1 < siblings.length) {
+                        return this.getDeepestNode(new TreeNodeWrapper(parent, siblings[index + 1], searchInstance), true);
+                    }
+                } else {
+                    if (index - 1 >= 0) {
+                        return this.getDeepestNode(new TreeNodeWrapper(parent, siblings[index - 1], searchInstance), false);
+                    }
+                }
             }
 
             current = parent;
@@ -260,7 +287,7 @@ export class SearchView implements vscode.TreeDataProvider<TreeNodeWrapper>, vsc
         return undefined;
     }
 
-    private async getFirstLeaf(node: TreeNodeWrapper): Promise<TreeNodeWrapper> {
+    private async getDeepestNode(node: TreeNodeWrapper, start: boolean): Promise<TreeNodeWrapper> {
         const searchResult = await node.searchInstance.resultPromise;
 
         let current = node;
@@ -269,7 +296,8 @@ export class SearchView implements vscode.TreeDataProvider<TreeNodeWrapper>, vsc
             if (!children || children.length === 0) {
                 return current;
             }
-            current = new TreeNodeWrapper(current, children[0], node.searchInstance);
+            const nextNode = start ? children[0] : children[children.length - 1];
+            current = new TreeNodeWrapper(current, nextNode, node.searchInstance);
         }
 
         return current;

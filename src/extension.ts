@@ -38,6 +38,12 @@ export function activate(context: vscode.ExtensionContext): void {
         }),
         vscode.commands.registerCommand('better-navigation.showImplementations', async () => {
             await controller.runSearch(implementationsModel);
+        }),
+        vscode.commands.registerCommand('better-navigation.nextResult', async () => {
+            await searchView.goToFollowingResult(true);
+        }),
+        vscode.commands.registerCommand('better-navigation.previousResult', async () => {
+            await searchView.goToFollowingResult(false);
         })
     );
 }
