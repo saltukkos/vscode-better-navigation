@@ -61,7 +61,7 @@ function flattenSingleChildFolders(node: GroupNode) {
             }
             const [subName, subChild] = nextEntry.value;
             // Merge
-            currentChild.name = `${currentChild.name}/${subName}`;
+            currentChild.name = `${currentChild.name}/${subChild.name}`;
             currentChild.children = subChild.children;
             currentChild.files = subChild.files;
             // Continue checking this same child (now transformed)

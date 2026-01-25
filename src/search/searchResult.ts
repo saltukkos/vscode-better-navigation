@@ -140,13 +140,15 @@ export class SearchResult {
         group: GroupNode,
         relativeToUri: Map<string, string>,
         resultsByFile: Map<string, vscode.Range[]>,
-        originalUri: Map<string, vscode.Uri>
+        originalUri: Map<string, vscode.Uri>,
+        parentPath: string = ''
     ): TreeNode[] {
         const nodes: TreeNode[] = [];
 
         const sortedChildren = Array.from(group.children.values()).sort((a, b) => a.name.localeCompare(b.name));
         for (const childGroup of sortedChildren) {
-            const childrenNodes = this.convertGroupToNodes(childGroup, relativeToUri, resultsByFile, originalUri);
+            const currentPath = parentPath ? `${parentPath}/${childGroup.name}` : childGroup.name;
+            const childrenNodes = this.convertGroupToNodes(childGroup, relativeToUri, resultsByFile, originalUri, currentPath);
             const firstFile = this.findFirstFileInGroup(childGroup);
 
             let folderUri = vscode.Uri.file('');
@@ -154,7 +156,21 @@ export class SearchResult {
                 const uriStr = relativeToUri.get(firstFile);
                 if (uriStr) {
                     const fileUri = originalUri.get(uriStr)!;
-                    folderUri = vscode.Uri.joinPath(fileUri, '..');
+                    
+                    // We need to go up from fileUri as many times as there are segments in the suffix
+                    // firstFile is like "a/b/c/d.txt", currentPath is "a/b"
+                    // suffix is "/c/d.txt" -> segments ["c", "d.txt"] -> 2 levels up
+                    
+                    // Careful with substring: firstFile must contain currentPath
+                    // It should, because the group structure comes from these paths.
+                    
+                    const suffix = firstFile.substring(currentPath.length);
+                    const segments = suffix.split('/').filter(s => s.length > 0);
+                    
+                    folderUri = fileUri;
+                    for(let i = 0; i < segments.length; i++) {
+                         folderUri = vscode.Uri.joinPath(folderUri, '..');
+                    }
                 }
             }
 
