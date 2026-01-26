@@ -53,6 +53,11 @@ export class SearchResult {
 
     private async expandRecursively(nodes: TreeNode[]): Promise<void> {
         await Promise.all(nodes.map(async node => {
+            // Note: to expensive otherwise. We open tons of documents at once
+            if (!(node instanceof FolderTreeNode)) {
+                return;
+            }
+
             const children = await this.getChildren(node);
             this.setNodeExpanded(node.nodeId, true);
             await this.expandRecursively(children);

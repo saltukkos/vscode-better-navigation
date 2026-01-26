@@ -156,9 +156,9 @@
       },
       {
         "command": "better-navigation.expandAll",
-        "title": "Expand All",
+        "title": "Expand All Folders",
         "category": "Better Navigation",
-        "enablement": "___never",
+        "enablement": "config.better-navigation.groupByDirectory",
         "icon": "$(expand-all)"
       },
       {
@@ -247,7 +247,7 @@
         },
         {
           "command": "better-navigation.expandAll",
-          "when": "view == 'better-navigation.tree' && ___never",
+          "when": "view == 'better-navigation.tree'",
           "group": "navigation@7"
         },
         {

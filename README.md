@@ -24,7 +24,8 @@
 - [x] Fix the issue when other trees are not getting rebuild when grouping changed while they were invisible
 - [ ] Grouping by member looks strange when we are searching 'implementations': member is in fact the result (but what if it's a method parameter that looks extremely alike?)
 - [ ] Add an optional grouping by write\read usages (custom API required)
-- [ ] Add an ability to type in results to filter them
+- [x] ~~Add an ability to type in results to filter them~~ - F3!!!
 - [x] Add counter "N result(s)" to each item in a tree
 - [x] Use better icons to display the grouping state
 - [ ] Cancel search if tab is closed before it finishes
+- [ ] Debug initial sizes of views inside vscode
