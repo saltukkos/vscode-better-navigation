@@ -29,3 +29,5 @@
 - [x] Use better icons to display the grouping state
 - [ ] Cancel search if tab is closed before it finishes
 - [ ] Debug initial sizes of views inside vscode
+- [x] Can't switch tab when long "loading results" is in progress
+- [ ] `'get' usages` when searching for property usages 🗿

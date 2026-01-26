@@ -152,8 +152,16 @@ export class SearchView implements vscode.TreeDataProvider<TreeNodeWrapper>, vsc
             //       is to display an empty tree temporarily (which triggers 'viewsWelcome' display).
             //       So we use 'viewsWelcome' to display a loading state and right after this we will
             //       invalidate the tree once more and then return the actual promise.
-            this._currentLoadingNodeDisplayState = LoadingNodeDisplayState.LoadingNodeDisplayIsNotNeeded;
-            this._onDidChangeTreeData.fire();
+
+            // Note: actually, we do not want to invalidate the tree right away: otherwise tree will
+            //       start waiting for the promise and this will block any other updates. This way, user
+            //       will not be able to switch search tab. So only invalidate tree after the promise
+            //       is resolved.
+            this._currentDisplayingSearch.resultPromise.then(() => {
+                this._currentLoadingNodeDisplayState = LoadingNodeDisplayState.LoadingNodeDisplayIsNotNeeded;
+                this._onDidChangeTreeData.fire();
+            });
+
             return [];
         }
 
