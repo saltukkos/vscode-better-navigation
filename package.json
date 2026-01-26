@@ -260,7 +260,19 @@
       {
         "command": "better-navigation.findReferences",
         "when": "editorHasReferenceProvider",
-        "key": "shift+alt+f12"
+        "key": "shift+f12"
+      },
+      {
+        "command": "better-navigation.nextResult",
+        "when": "better-navigation.hasSearches",
+        "key": "ctrl+alt+down",
+        "mac": "cmd+alt+down"
+      },
+      {
+        "command": "better-navigation.previousResult",
+        "when": "better-navigation.hasSearches",
+        "key": "ctrl+alt+up",
+        "mac": "cmd+alt+up"
       }
     ]
   },
