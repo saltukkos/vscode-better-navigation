@@ -2,9 +2,13 @@
   "name": "better-navigation",
   "displayName": "Better Navigation",
   "description": "Better Navigation View (Extracted)",
-  "version": "1.0.0",
-  "publisher": "user",
+  "version": "0.0.1",
+  "publisher": "saltukkos",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/saltukkos/vscode-better-navigation"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },

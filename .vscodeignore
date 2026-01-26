@@ -1,0 +1,17 @@
+# Source files
+src/**
+.vscode/**
+
+# Build files
+tsconfig.json
+.gitignore
+
+# Development dependencies
+node_modules/**
+
+# Test files
+out/test/**
+
+# Documentation
+*.md
+!README.md
