@@ -7,13 +7,13 @@
 - [ ] Implement type hierarchy
 - [x] Add tabs and multisearch
 - [x] Auto-expand first result in tree view
-- [ ] Auto-expand single child (but only on click)
 - [x] Preserve expanded state and selected element after rebuilding the tree and switching between results
 - [x] Display proper loading states
     - [x] Fix the issue when 'loading' is shown when there are no results
 - [ ] Commands and keybindings to switch between tabs\navigate\etc.
-- [ ] Add an ability to navigate to a single result directly
-    - [ ] Probably add status bar item 'waiting for sync navigation: 1.7s...'
+- [x] Add an ability to navigate to a single result directly
+    - [x] Probably add status bar item 'waiting for sync navigation: 1.7s...'
+    - [ ] Ignore the item under caret? (TS support always return the symbol itself + usages)
 - [ ] Add reuse of search results:
     - [ ] Overwrite last item if it was not used (no clicks, no navigation)
     - [ ] Go back to the existing result if search is on the same location and no changes happened

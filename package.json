@@ -63,6 +63,17 @@
             "markdownDescription": "A comma-separated list of SymbolKinds to exclude from member grouping. For example: 'Variable,Constant'. See https://code.visualstudio.com/api/references/vscode-api#SymbolKind for the full list of available types. Only applies when `#better-navigation.groupByMember#` is enabled.",
             "type": "string",
             "default": "Variable,String,Number,Boolean,Array,Object,Key,Null,Constant"
+        },
+        "better-navigation.autoNavigateTimeout": {
+          "description": "Timeout in milliseconds to wait for search results before falling back to the view. Set to 0 to disable auto-navigation.",
+          "type": "number",
+          "default": 1500,
+          "minimum": 0
+        },
+        "better-navigation.showAutoNavigateCountdown": {
+          "description": "Show a countdown in the status bar while waiting for a single result. Only applies when auto-navigation is enabled.",
+          "type": "boolean",
+          "default": true
         }
       }
     },

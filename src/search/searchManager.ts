@@ -4,6 +4,7 @@ import { SearchModel } from '../searchProviders/model';
 import { SearchResult } from './searchResult';
 import { tryGetSearchTerm } from '../utils';
 import { SearchInstance } from './searchInstance';
+import { AutoNavigateController } from './autoNavigateController';
 
 export class SearchController implements vscode.Disposable {
     private readonly _searches: SearchInstance[] = [];
@@ -15,6 +16,8 @@ export class SearchController implements vscode.Disposable {
 
     private readonly _onDidUpdateSearchList = new vscode.EventEmitter<void>();
     readonly onDidUpdateSearchList = this._onDidUpdateSearchList.event;
+
+    constructor(private readonly _autoNavigateController: AutoNavigateController) {}
 
     public get activeSearch(): SearchInstance | undefined {
         return this._activeSearch;
@@ -39,6 +42,10 @@ export class SearchController implements vscode.Disposable {
         const resultPromise = resolvePromise.then(locations => {
             return new SearchResult(locations, search.itemsIcon);
         });
+
+        if (await this._autoNavigateController.tryAutoNavigate(resolvePromise)) {
+            return;
+        }
 
         const searchInstance: SearchInstance = {
             id: `${this._searchIdCounter++}`,
