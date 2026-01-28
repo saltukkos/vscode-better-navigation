@@ -1,8 +1,8 @@
 {
   "name": "better-navigation",
   "displayName": "Better Navigation",
-  "description": "Better Navigation View (Extracted)",
-  "version": "0.0.1",
+  "description": "Enhanced Find References with smart grouping, multi-tab results, and improved navigation",
+  "version": "0.0.5",
   "publisher": "saltukkos",
   "license": "MIT",
   "repository": {
@@ -14,10 +14,6 @@
   },
   "categories": [
     "Other"
-  ],
-  "activationEvents": [
-    "onCommand:better-navigation.find",
-    "onCommand:editor.action.showReferences"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -118,24 +114,25 @@
       {
         "command": "better-navigation.showSupertypes",
         "title": "Show Supertypes",
-        "category": "Types",
+        "category": "Better Navigation",
         "icon": "$(type-hierarchy-super)"
       },
       {
         "command": "better-navigation.showSubtypes",
         "title": "Show Subtypes",
-        "category": "Types",
+        "category": "Better Navigation",
         "icon": "$(type-hierarchy-sub)"
       },
       {
         "command": "better-navigation.showImplementations",
         "title": "Show Implementations",
-        "category": "Types",
+        "category": "Better Navigation",
         "icon": "$(type-hierarchy-sub)"
       },
       {
         "command": "better-navigation.enableDirectoryGrouping",
         "title": "Enable grouping by directory",
+        "enablement": "better-navigation.hasSearches",
         "category": "Better Navigation",
         "icon": "$(folder~disabled)"
       },
@@ -197,28 +194,6 @@
       }
     ],
     "menus": {
-      "editor/context": [
-        {
-          "command": "better-navigation.findReferences",
-          "when": "editorHasReferenceProvider",
-          "group": "0_navigation@1"
-        },
-        {
-          "command": "better-navigation.showSupertypes",
-          "when": "editorHasTypeHierarchyProvider",
-          "group": "0_navigation@4"
-        },
-        {
-          "command": "better-navigation.showSubtypes",
-          "when": "editorHasTypeHierarchyProvider",
-          "group": "0_navigation@5"
-        },
-        {
-          "command": "better-navigation.showImplementations",
-          "when": "editorHasTypeHierarchyProvider",
-          "group": "0_navigation@5"
-        }
-      ],
       "view/title": [
         {
           "command": "better-navigation.disableDirectoryGrouping",

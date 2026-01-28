@@ -17,7 +17,9 @@ export class SearchController implements vscode.Disposable {
     private readonly _onDidUpdateSearchList = new vscode.EventEmitter<void>();
     readonly onDidUpdateSearchList = this._onDidUpdateSearchList.event;
 
-    constructor(private readonly _autoNavigateController: AutoNavigateController) {}
+    constructor(private readonly _autoNavigateController: AutoNavigateController) {
+        this.updateVisibility();
+    }
 
     public get activeSearch(): SearchInstance | undefined {
         return this._activeSearch;

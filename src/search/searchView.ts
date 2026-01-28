@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SearchController } from './searchManager';
+import { SearchController } from './searchController';
 import { TreeNode } from './treeNode';
 import { NodeId } from './nodeId';
 import { SearchInstance } from './searchInstance';

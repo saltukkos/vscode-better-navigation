@@ -13,7 +13,7 @@
 - [ ] Commands and keybindings to switch between tabs\navigate\etc.
 - [x] Add an ability to navigate to a single result directly
     - [x] Probably add status bar item 'waiting for sync navigation: 1.7s...'
-    - [ ] Ignore the item under caret? (TS support always return the symbol itself + usages)
+    - [ ] Ignore the item under caret? (TS support always return the symbol itself + usages. Especially bad if no real usages)
 - [ ] Add reuse of search results:
     - [ ] Overwrite last item if it was not used (no clicks, no navigation)
     - [ ] Go back to the existing result if search is on the same location and no changes happened
@@ -31,3 +31,5 @@
 - [ ] Debug initial sizes of views inside vscode
 - [x] Can't switch tab when long "loading results" is in progress
 - [ ] `'get' usages` when searching for property usages 🗿
+- [x] View is not hidden after "Restart extensions"
+- [ ] Check, can we relax the vscode version requirement

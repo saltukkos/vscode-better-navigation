@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SearchController } from './search/searchManager';
+import { SearchController } from './search/searchController';
 import { SearchView } from './search/searchView';
 import { TabView } from './search/tabView';
 import { ReferencesSearchModel } from './searchProviders/referencesModel';
@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(searchView);
 
     const tabView = new TabView(context.extensionUri, searchController);
-    context.subscriptions.push();
+    context.subscriptions.push(tabView);
 
     const referencesModel = new ReferencesSearchModel();
     const supertypesModel = new TypeHierarchySearchModel(TypeHierarchyDirection.Supertypes);

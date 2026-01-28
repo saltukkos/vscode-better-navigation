@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SearchController } from './search/searchManager';
+import { SearchController } from './search/searchController';
 
 export class ConfigurationHandler implements vscode.Disposable {
     private readonly _disposables: vscode.Disposable[] = [];

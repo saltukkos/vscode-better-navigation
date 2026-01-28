@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SearchController } from './searchManager';
+import { SearchController } from './searchController';
 
 export class TabView implements vscode.WebviewViewProvider, vscode.Disposable {
     private readonly _disposable: vscode.Disposable;
