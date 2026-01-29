@@ -2,9 +2,10 @@
   "name": "better-navigation",
   "displayName": "Better Navigation",
   "description": "Enhanced Find References with smart grouping, multi-tab results, and improved navigation",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "saltukkos",
   "license": "MIT",
+  "icon": "media/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/saltukkos/vscode-better-navigation"
@@ -89,12 +90,14 @@
           "name": "Tabs",
           "when": "better-navigation.hasSearches && better-navigation.showVisualTabs",
           "type": "webview",
+          "icon": "$(collection)",
           "initialSize": 1
         },
         {
           "id": "better-navigation.tree",
           "name": "Better Navigation",
           "when": "better-navigation.hasSearches",
+          "icon": "$(search-sparkle)",
           "initialSize": 100
         }
       ]
