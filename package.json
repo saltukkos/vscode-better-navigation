@@ -2,7 +2,7 @@
   "name": "better-navigation",
   "displayName": "Better Navigation",
   "description": "Enhanced Find References with smart grouping, multi-tab results, and improved navigation",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "publisher": "saltukkos",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -254,6 +254,12 @@
         "command": "better-navigation.findReferences",
         "when": "editorHasReferenceProvider",
         "key": "shift+f12"
+      },
+      {
+        "command": "better-navigation.showImplementations",
+        "when": "editorHasReferenceProvider",
+        "key": "ctrl+f12",
+        "mac": "cmd+f12"
       },
       {
         "command": "better-navigation.nextResult",

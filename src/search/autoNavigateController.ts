@@ -91,14 +91,14 @@ export class AutoNavigateController implements vscode.Disposable {
             const lineText = doc.lineAt(end.line).text;
 
             // text after the word end on the same line
-            const after = lineText.slice(end.character);
+            const after = lineText.slice(wordRange.end.character);
 
             // distance to next whitespace; if none, distance to end-of-line
             const ws = after.match(/\s/);
             const distanceToStop = ws?.index ?? after.length;
 
             if (distanceToStop > 0 && distanceToStop <= 7) {
-                end = end.translate(0, distanceToStop);
+                end = wordRange.end.translate(0, distanceToStop);
             } else {
                 end = wordRange.end;
             }
