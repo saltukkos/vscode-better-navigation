@@ -12,7 +12,13 @@ export class TabView implements vscode.WebviewViewProvider, vscode.Disposable {
         this._disposable = vscode.Disposable.from(
             this._manager.onDidUpdateSearchList(() => this.updateView()),
             this._manager.onDidChangeActiveSearch(() => this.updateView()),
-            vscode.window.registerWebviewViewProvider('better-navigation.tabs', this),
+            vscode.window.registerWebviewViewProvider('better-navigation.tabs', this, {
+                webviewOptions: {
+                    // Note: greatly improves the experience when switching back to the view,
+                    //       and should be cheap (our tabs view is extremely simple)
+                    retainContextWhenHidden: true
+                }
+            }),
             vscode.workspace.onDidChangeConfiguration(e => {
                 if (e.affectsConfiguration('better-navigation.showVisualTabs')) {
                     this.updateShowTabsContextValue();
