@@ -266,6 +266,11 @@
         "when": "better-navigation.hasSearches",
         "key": "ctrl+alt+up",
         "mac": "cmd+alt+up"
+      },
+      {
+        "command": "better-navigation.hideAutoNavigateNotification",
+        "key": "escape",
+        "when": "better-navigation.isAutoNavigateNotificationVisible && editorTextFocus"
       }
     ]
   },

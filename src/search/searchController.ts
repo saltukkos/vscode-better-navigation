@@ -45,7 +45,7 @@ export class SearchController implements vscode.Disposable {
             return new SearchResult(locations, search.itemsIcon);
         });
 
-        if (await this._autoNavigateController.tryAutoNavigate(resolvePromise)) {
+        if (await this._autoNavigateController.tryAutoNavigate(search, resolvePromise, location)) {
             return;
         }
 

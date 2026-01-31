@@ -1,23 +1,27 @@
 import * as vscode from 'vscode';
+import { SearchModel } from '../searchProviders/model';
 
 export class AutoNavigateController implements vscode.Disposable {
     private readonly _statusBarItem: vscode.StatusBarItem;
     private _inProgress: boolean = false;
+    private _currentDecorationType: vscode.TextEditorDecorationType | undefined;
+    private _notificationTimeout: NodeJS.Timeout | undefined;
+    private readonly _disposables: vscode.Disposable[] = [];
 
     constructor() {
         this._statusBarItem = vscode.window.createStatusBarItem(
             vscode.StatusBarAlignment.Right,
             1000000
         );
+        this._disposables.push(this._statusBarItem);
+        this._disposables.push(vscode.commands.registerCommand('better-navigation.hideAutoNavigateNotification', () => this.hideNotification()));
     }
 
     /**
      * Attempts to auto-navigate to a single search result.
      * Returns true if navigation occurred, false otherwise.
      */
-    public async tryAutoNavigate(
-        locationsPromise: Promise<vscode.Location[]>
-    ): Promise<boolean> {
+    public async tryAutoNavigate(search: SearchModel, locationsPromise: Promise<vscode.Location[]>, originalLocation: { uri: vscode.Uri, selection: vscode.Selection }): Promise<boolean> {
         if (this._inProgress) {
             return false;
         }
@@ -42,7 +46,20 @@ export class AutoNavigateController implements vscode.Disposable {
                 return false;
             }
 
+            if (result.length === 0) {
+                this.showNotification(`No ${search.title.toLowerCase()} found`, originalLocation);
+                return true;
+            }
+
             if (result.length === 1) {
+                const location = result[0];
+                const isSameLocation = location.uri.toString() === originalLocation.uri.toString() && location.range.contains(originalLocation.selection.active);
+                
+                if (isSameLocation) {
+                    this.showNotification(`No other ${search.title.toLowerCase()} found`, originalLocation);
+                    return true;
+                }
+
                 await this.navigateToLocation(result[0]);
                 return true;
             }
@@ -54,6 +71,71 @@ export class AutoNavigateController implements vscode.Disposable {
             this._inProgress = false;
             this._statusBarItem.hide();
         }
+    }
+
+    private showNotification(message: string, originalLocation: { uri: vscode.Uri, selection: vscode.Selection }): void {
+        this.hideNotification();
+
+        // Do not show anything if active editor has changed
+        if (vscode.window.activeTextEditor?.document.uri.toString() !== originalLocation.uri.toString()) {
+            return;
+        }
+
+        const range: vscode.Range = originalLocation.selection;
+        const doc = vscode.window.activeTextEditor?.document;
+        let end = range.end;
+
+        // find the end of word using utils.tryGetSearchTerm and then, move right up to 5 symbols before the whitespace or end of line. If there is more than 5 symbols, do not move, keep at the end of word.
+        const wordRange = doc?.getWordRangeAtPosition(range.start);
+        if (wordRange) {
+            const lineText = doc.lineAt(end.line).text;
+
+            // text after the word end on the same line
+            const after = lineText.slice(end.character);
+
+            // distance to next whitespace; if none, distance to end-of-line
+            const ws = after.match(/\s/);
+            const distanceToStop = ws?.index ?? after.length;
+
+            if (distanceToStop > 0 && distanceToStop <= 7) {
+                end = end.translate(0, distanceToStop);
+            } else {
+                end = wordRange.end;
+            }
+        }
+
+        this._currentDecorationType = vscode.window.createTextEditorDecorationType({
+            after: {
+                contentText: ` ${message} ​`,
+                color: new vscode.ThemeColor('editorHoverWidget.foreground'),
+                backgroundColor: new vscode.ThemeColor('editorHoverWidget.background'),
+                border: '1px solid',
+                borderColor: new vscode.ThemeColor('inputValidation.infoBorder'),
+                margin: '10px',
+            }
+        });
+        
+        vscode.window.activeTextEditor?.setDecorations(this._currentDecorationType, [{
+            range: new vscode.Range(range.start, end),
+        }]);
+
+        vscode.commands.executeCommand('setContext', 'better-navigation.isAutoNavigateNotificationVisible', true);
+
+        this._notificationTimeout = setTimeout(() => {
+            this.hideNotification();
+        }, 3000);
+    }
+
+    private hideNotification(): void {
+        if (this._currentDecorationType) {
+            this._currentDecorationType.dispose();
+            this._currentDecorationType = undefined;
+        }
+        if (this._notificationTimeout) {
+            clearTimeout(this._notificationTimeout);
+            this._notificationTimeout = undefined;
+        }
+        vscode.commands.executeCommand('setContext', 'better-navigation.isAutoNavigateNotificationVisible', false);
     }
 
     private showStatusBar(): void {
@@ -77,7 +159,8 @@ export class AutoNavigateController implements vscode.Disposable {
     }
 
     public dispose(): void {
-        this._statusBarItem.dispose();
+        this.hideNotification();
+        this._disposables.forEach(d => d.dispose());
     }
 }
 
