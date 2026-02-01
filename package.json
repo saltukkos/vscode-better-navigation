@@ -20,32 +20,6 @@
   "contributes": {
     "configuration": {
       "properties": {
-        "better-navigation.preferredLocation": {
-          "description": "Controls where 'Find References' results are displayed.",
-          "type": "string",
-          "default": "peek",
-          "enum": [
-            "peek",
-            "view"
-          ],
-          "enumDescriptions": [
-            "Show references in a peek editor.",
-            "Show references in a separate view."
-          ]
-        },
-        "better-navigation.tabViewType": {
-          "description": "Controls how multiple search tabs are displayed.",
-          "type": "string",
-          "default": "visual",
-          "enum": [
-            "visual",
-            "quickpick"
-          ],
-          "enumDescriptions": [
-            "Show tabs as a visual tab bar.",
-            "Show tabs in a quickpick menu accessed from the view title."
-          ]
-        },
         "better-navigation.groupByDirectory": {
           "description": "Controls whether to group search results by directory structure.",
           "type": "boolean",

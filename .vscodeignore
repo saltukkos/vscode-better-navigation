@@ -15,3 +15,7 @@ out/test/**
 # Documentation
 *.md
 !README.md
+
+# Media
+media/**
+!media/icon.png
