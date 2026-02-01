@@ -68,7 +68,7 @@
         {
           "id": "better-navigation.tabs",
           "name": "Tabs",
-          "when": "better-navigation.hasSearches && better-navigation.showVisualTabs",
+          "when": "better-navigation.hasSearches",
           "type": "webview",
           "icon": "$(collection)",
           "initialSize": 1

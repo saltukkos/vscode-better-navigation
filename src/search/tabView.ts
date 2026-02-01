@@ -19,14 +19,14 @@ export class TabView implements vscode.WebviewViewProvider, vscode.Disposable {
                     retainContextWhenHidden: true
                 }
             }),
-            vscode.workspace.onDidChangeConfiguration(e => {
-                if (e.affectsConfiguration('better-navigation.showVisualTabs')) {
-                    this.updateShowTabsContextValue();
-                }
-            })
+            // vscode.workspace.onDidChangeConfiguration(e => {
+            //     if (e.affectsConfiguration('better-navigation.showVisualTabs')) {
+            //         this.updateShowTabsContextValue();
+            //     }
+            // })
         );
 
-        this.updateShowTabsContextValue();
+        // this.updateShowTabsContextValue();
     }
 
     public resolveWebviewView(
@@ -202,10 +202,10 @@ export class TabView implements vscode.WebviewViewProvider, vscode.Disposable {
             .replace(/'/g, '&#039;');
     }
 
-    private updateShowTabsContextValue() {
-        const tabViewType = vscode.workspace.getConfiguration('better-navigation').get<string>('tabViewType');
-        vscode.commands.executeCommand('setContext', 'better-navigation.showVisualTabs', tabViewType === 'visual');
-    }
+    // private updateShowTabsContextValue() {
+    //     const tabViewType = vscode.workspace.getConfiguration('better-navigation').get<string>('tabViewType');
+    //     vscode.commands.executeCommand('setContext', 'better-navigation.showVisualTabs', tabViewType === 'visual');
+    // }
 
     public dispose() {
         this._disposable.dispose();
