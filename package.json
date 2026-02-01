@@ -2,7 +2,7 @@
   "name": "better-navigation",
   "displayName": "Better Navigation",
   "description": "Enhanced Find References with smart grouping, multi-tab results, and improved navigation",
-  "version": "0.0.8",
+  "version": "1.0.0",
   "publisher": "saltukkos",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -39,6 +39,12 @@
           "description": "Timeout in milliseconds to wait for search results before falling back to the view. Set to 0 to disable auto-navigation.",
           "type": "number",
           "default": 1500,
+          "minimum": 0
+        },
+        "better-navigation.autoNavigateNotificationTimeout": {
+          "description": "Timeout in milliseconds to hide the 'No (other) results found' hint. Tip: you can always hide it by pressing `Esc` or moving the caret.",
+          "type": "number",
+          "default": 2000,
           "minimum": 0
         },
         "better-navigation.showAutoNavigateCountdown": {

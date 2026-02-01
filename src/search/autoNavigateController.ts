@@ -6,6 +6,7 @@ export class AutoNavigateController implements vscode.Disposable {
     private _inProgress: boolean = false;
     private _currentDecorationType: vscode.TextEditorDecorationType | undefined;
     private _notificationTimeout: NodeJS.Timeout | undefined;
+    private _selectionListener: vscode.Disposable | undefined;
     private readonly _disposables: vscode.Disposable[] = [];
 
     constructor() {
@@ -125,9 +126,18 @@ export class AutoNavigateController implements vscode.Disposable {
 
         vscode.commands.executeCommand('setContext', 'better-navigation.isAutoNavigateNotificationVisible', true);
 
+        if (!this._selectionListener) {
+            this._selectionListener = vscode.window.onDidChangeTextEditorSelection(() => {
+                this.hideNotification();
+            });
+        }
+
+        const config = vscode.workspace.getConfiguration('better-navigation');
+        const timeout = config.get<number>('autoNavigateNotificationTimeout', 2000);
+
         this._notificationTimeout = setTimeout(() => {
             this.hideNotification();
-        }, 2000);
+        }, timeout);
     }
 
     private hideNotification(): void {
@@ -138,6 +148,10 @@ export class AutoNavigateController implements vscode.Disposable {
         if (this._notificationTimeout) {
             clearTimeout(this._notificationTimeout);
             this._notificationTimeout = undefined;
+        }
+        if (this._selectionListener) {
+            this._selectionListener.dispose();
+            this._selectionListener = undefined;
         }
         vscode.commands.executeCommand('setContext', 'better-navigation.isAutoNavigateNotificationVisible', false);
     }
@@ -164,6 +178,7 @@ export class AutoNavigateController implements vscode.Disposable {
 
     public dispose(): void {
         this.hideNotification();
+        this._selectionListener?.dispose();
         this._disposables.forEach(d => d.dispose());
     }
 }
