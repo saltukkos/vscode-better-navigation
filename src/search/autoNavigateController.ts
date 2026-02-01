@@ -84,8 +84,8 @@ export class AutoNavigateController implements vscode.Disposable {
         const range: vscode.Range = originalLocation.selection;
         const doc = vscode.window.activeTextEditor?.document;
         let end = range.end;
+        let isEndOfLine = false;
 
-        // find the end of word using utils.tryGetSearchTerm and then, move right up to 5 symbols before the whitespace or end of line. If there is more than 5 symbols, do not move, keep at the end of word.
         const wordRange = doc?.getWordRangeAtPosition(range.start);
         if (wordRange) {
             const lineText = doc.lineAt(end.line).text;
@@ -97,33 +97,37 @@ export class AutoNavigateController implements vscode.Disposable {
             const ws = after.match(/\s/);
             const distanceToStop = ws?.index ?? after.length;
 
-            if (distanceToStop > 0 && distanceToStop <= 7) {
+            if (distanceToStop > 0 && distanceToStop <= 2) {
                 end = wordRange.end.translate(0, distanceToStop);
+                isEndOfLine = distanceToStop === after.length;
             } else {
                 end = wordRange.end;
             }
         }
 
+        const decoration = {
+            contentText: ` ${message} ​`,
+            color: new vscode.ThemeColor('editorHoverWidget.foreground'),
+            backgroundColor: new vscode.ThemeColor('editorHoverWidget.background'),
+            border: '1px solid',
+            borderColor: new vscode.ThemeColor('inputValidation.infoBorder'),
+            margin: '10px',
+        };
+
         this._currentDecorationType = vscode.window.createTextEditorDecorationType({
-            after: {
-                contentText: ` ${message} ​`,
-                color: new vscode.ThemeColor('editorHoverWidget.foreground'),
-                backgroundColor: new vscode.ThemeColor('editorHoverWidget.background'),
-                border: '1px solid',
-                borderColor: new vscode.ThemeColor('inputValidation.infoBorder'),
-                margin: '10px',
-            }
+            before: isEndOfLine ? decoration : undefined,
+            after: isEndOfLine ? undefined : decoration,
         });
         
         vscode.window.activeTextEditor?.setDecorations(this._currentDecorationType, [{
-            range: new vscode.Range(range.start, end),
+            range: new vscode.Range(end, end),
         }]);
 
         vscode.commands.executeCommand('setContext', 'better-navigation.isAutoNavigateNotificationVisible', true);
 
         this._notificationTimeout = setTimeout(() => {
             this.hideNotification();
-        }, 3000);
+        }, 2000);
     }
 
     private hideNotification(): void {
